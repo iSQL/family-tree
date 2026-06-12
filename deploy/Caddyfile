@@ -1,0 +1,8 @@
+# Caddy reverse proxy sa automatskim Let's Encrypt HTTPS-om.
+# PWA i Secure cookies zahtevaju HTTPS — u produkciji uvek ići preko ovoga.
+# Zameni domen svojim, pokreni: caddy run --config deploy/Caddyfile
+
+stablo.example.com {
+	encode zstd gzip
+	reverse_proxy localhost:3001
+}

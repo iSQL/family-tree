@@ -1,0 +1,15 @@
+services:
+  family-tree:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      # Obavezno postaviti u .env pored compose fajla ili u okruženju:
+      AUTH_PASSWORD: ${AUTH_PASSWORD:?Postavi AUTH_PASSWORD (porodična lozinka)}
+      SESSION_SECRET: ${SESSION_SECRET:?Postavi SESSION_SECRET (min 32 karaktera)}
+      # AUTH_DISABLED se u produkciji NE SME postavljati — server odbija boot.
+    volumes:
+      # Sva trajna stanja: baza, slike, bekapi. Bekapuj ovaj direktorijum!
+      - ./data:/app/data
