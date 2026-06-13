@@ -147,9 +147,9 @@ export default function TimelinePage() {
                           key={p.id}
                           type="button"
                           onClick={() => navigate(`/?focus=${p.id}`)}
-                          className="flex max-w-full cursor-pointer items-center gap-1.5 rounded-full border border-stone-300 bg-white py-0.5 pr-2.5 pl-0.5 text-sm hover:border-amber-600 hover:bg-amber-50 dark:border-stone-600 dark:bg-stone-800 dark:hover:bg-stone-700"
+                          className="flex min-h-[36px] max-w-full cursor-pointer items-center gap-1.5 rounded-full border border-stone-300 bg-white py-1 pr-3 pl-1 text-sm hover:border-amber-600 hover:bg-amber-50 dark:border-stone-600 dark:bg-stone-800 dark:hover:bg-stone-700"
                         >
-                          <Avatar person={p} size={22} />
+                          <Avatar person={p} size={24} />
                           <span className="truncate">
                             {p.first_name} {p.last_name}
                           </span>

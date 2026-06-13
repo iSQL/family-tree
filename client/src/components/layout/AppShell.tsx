@@ -44,7 +44,7 @@ function mobileLinkClass({ isActive }: { isActive: boolean }): string {
 /** Ljuska: desktop top bar, mobilni bottom tabovi (<768px), offline traka. */
 export function AppShell() {
   return (
-    <div className="flex h-dvh flex-col">
+    <div className="flex h-dvh flex-col pt-[env(safe-area-inset-top)]">
       <OfflineBanner />
 
       {/* Desktop top bar */}

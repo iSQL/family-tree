@@ -18,7 +18,10 @@ export interface TreeCanvasProps {
   tree: TreeResponse;
   /** ?focus=:id — centriraj osobu kao glavnu. */
   focusId: number | null;
+  /** Jednostruki klik — otvara detalje. */
   onPersonClick: (id: number) => void;
+  /** Dupli klik — re-root stabla na tu osobu. */
+  onPersonActivate?: (id: number) => void;
 }
 
 const ESC_MAP: Record<string, string> = {
@@ -52,7 +55,7 @@ function cardInnerHtml(datum: F3Datum, isMain: boolean): string {
     ? `<img class="ft-card-img" src="/api/photos/${encodeURIComponent(p.photo_id)}?size=thumb" alt="" loading="lazy">`
     : placeholderSvg(p.gender);
   const genderClass = p.gender === 'M' ? 'ft-card-m' : p.gender === 'F' ? 'ft-card-f' : 'ft-card-u';
-  return `<div class="ft-card ${genderClass}${isMain ? ' ft-card-main' : ''}">
+  return `<div class="ft-card ${genderClass}${isMain ? ' ft-card-main' : ''}" data-person-id="${esc(datum.id)}">
     ${img}
     <div class="ft-card-text">
       <div class="ft-card-name">${name}${title}</div>
@@ -61,15 +64,17 @@ function cardInnerHtml(datum: F3Datum, isMain: boolean): string {
   </div>`;
 }
 
-export function TreeCanvas({ tree, focusId, onPersonClick }: TreeCanvasProps) {
+export function TreeCanvas({ tree, focusId, onPersonClick, onPersonActivate }: TreeCanvasProps) {
   const contRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<Chart | null>(null);
   const firstRenderRef = useRef(true);
   const lastFocusRef = useRef<number | null>(null);
 
-  // Stabilna referenca ka handleru — kartice žive van React-a.
+  // Stabilne reference ka handlerima — kartice žive van React-a.
   const clickRef = useRef(onPersonClick);
   clickRef.current = onPersonClick;
+  const activateRef = useRef(onPersonActivate);
+  activateRef.current = onPersonActivate;
 
   const f3Data = useMemo(() => toF3(tree), [tree]);
 
@@ -101,7 +106,21 @@ export function TreeCanvas({ tree, focusId, onPersonClick }: TreeCanvasProps) {
     });
 
     chartRef.current = chart;
+
+    // Dupli klik = re-root. family-chart nema dblclick API i zaustavlja propagaciju
+    // u bubble fazi, pa slušamo u CAPTURE fazi na stabilnom kontejneru (čita naš
+    // data-person-id; delegacija preživljava re-render kartica).
+    const onDblClick = (e: MouseEvent) => {
+      const card = (e.target as HTMLElement | null)?.closest<HTMLElement>('.ft-card');
+      const raw = card?.dataset.personId;
+      if (raw === undefined) return;
+      const id = Number(raw);
+      if (Number.isFinite(id)) activateRef.current?.(id);
+    };
+    cont.addEventListener('dblclick', onDblClick, true);
+
     return () => {
+      cont.removeEventListener('dblclick', onDblClick, true);
       chartRef.current = null;
       cont.innerHTML = '';
     };
@@ -131,7 +150,16 @@ export function TreeCanvas({ tree, focusId, onPersonClick }: TreeCanvasProps) {
   // Promena fokusa (?focus=)
   useEffect(() => {
     const chart = chartRef.current;
-    if (!chart || focusId === null || focusId === lastFocusRef.current) return;
+    if (!chart || f3Data.length === 0) return;
+    // Fokus očišćen (npr. „Cela porodica" / „Nazad" do dna) → prikaži celu porodicu.
+    if (focusId === null) {
+      if (lastFocusRef.current !== null) {
+        lastFocusRef.current = null;
+        chart.updateTree({ tree_position: 'fit' });
+      }
+      return;
+    }
+    if (focusId === lastFocusRef.current) return;
     if (!f3Data.some((d) => d.id === String(focusId))) return;
     lastFocusRef.current = focusId;
     chart.updateMainId(String(focusId));

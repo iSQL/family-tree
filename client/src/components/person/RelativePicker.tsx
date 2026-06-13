@@ -77,7 +77,7 @@ export function RelativePicker({
                 e.stopPropagation();
                 pick(null);
               }}
-              className="rounded p-0.5 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200"
+              className="rounded p-1.5 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200"
             >
               <X size={14} />
             </span>

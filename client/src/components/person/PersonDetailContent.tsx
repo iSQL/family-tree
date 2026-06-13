@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, Pencil, Trash2, UserPlus } from 'lucide-react';
+import { Heart, Pencil, TreeDeciduous, Trash2, UserPlus } from 'lucide-react';
 import type { PersonDetail, PersonSlim, UnionWithPartner } from '@shared/types';
 import { useDeletePerson, useDeleteUnion } from '../../hooks/useMutations';
 import { useOnline } from '../../hooks/useOnline';
@@ -24,9 +24,9 @@ function PersonChip({ person, onClick, badge }: { person: PersonSlim; onClick: (
     <button
       type="button"
       onClick={onClick}
-      className="flex max-w-full cursor-pointer items-center gap-1.5 rounded-full border border-stone-300 bg-white py-1 pr-3 pl-1 text-sm hover:border-amber-600 hover:bg-amber-50 dark:border-stone-600 dark:bg-stone-800 dark:hover:bg-stone-700"
+      className="flex min-h-[40px] max-w-full cursor-pointer items-center gap-1.5 rounded-full border border-stone-300 bg-white py-1 pr-3 pl-1 text-sm hover:border-amber-600 hover:bg-amber-50 dark:border-stone-600 dark:bg-stone-800 dark:hover:bg-stone-700"
     >
-      <Avatar person={person} size={22} />
+      <Avatar person={person} size={28} />
       <span className="truncate">
         {person.first_name} {person.last_name}
       </span>
@@ -67,11 +67,13 @@ export interface PersonDetailContentProps {
   person: PersonDetail;
   /** Klik na čip srodnika (refokus stabla ili navigacija). */
   onPersonClick: (id: number) => void;
+  /** „Prikaži stablo odavde" — re-root na ovu osobu (samo iz drawera/sheeta). */
+  onShowInTree?: (id: number) => void;
   /** Posle uspešnog brisanja osobe. */
   onDeleted: () => void;
 }
 
-export function PersonDetailContent({ person, onPersonClick, onDeleted }: PersonDetailContentProps) {
+export function PersonDetailContent({ person, onPersonClick, onShowInTree, onDeleted }: PersonDetailContentProps) {
   const navigate = useNavigate();
   const online = useOnline();
   const deletePerson = useDeletePerson();
@@ -110,6 +112,12 @@ export function PersonDetailContent({ person, onPersonClick, onDeleted }: Person
 
       {/* Akcije */}
       <div className="flex flex-wrap gap-2">
+        {onShowInTree && (
+          <Button size="sm" variant="secondary" onClick={() => onShowInTree(person.id)}>
+            <TreeDeciduous size={14} aria-hidden="true" />
+            {STR.tree.showFromHere}
+          </Button>
+        )}
         <Button size="sm" onClick={() => navigate(`/person/${person.id}/edit`)} disabled={!online} title={offlineTitle}>
           <Pencil size={14} aria-hidden="true" />
           {STR.common.edit}
@@ -208,7 +216,7 @@ export function PersonDetailContent({ person, onPersonClick, onDeleted }: Person
                   onClick={() => setEditUnion(u)}
                   disabled={!online}
                   title={offlineTitle}
-                  className="cursor-pointer rounded-md p-1.5 text-stone-400 hover:bg-stone-200/70 hover:text-stone-700 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-stone-700 dark:hover:text-stone-200"
+                  className="cursor-pointer rounded-md p-2.5 text-stone-400 hover:bg-stone-200/70 hover:text-stone-700 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-stone-700 dark:hover:text-stone-200"
                 >
                   <Pencil size={14} />
                 </button>
@@ -218,7 +226,7 @@ export function PersonDetailContent({ person, onPersonClick, onDeleted }: Person
                   onClick={() => setDeleteUnionTarget(u)}
                   disabled={!online}
                   title={offlineTitle}
-                  className="cursor-pointer rounded-md p-1.5 text-stone-400 hover:bg-red-100 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-red-950 dark:hover:text-red-400"
+                  className="cursor-pointer rounded-md p-2.5 text-stone-400 hover:bg-red-100 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-red-950 dark:hover:text-red-400"
                 >
                   <Trash2 size={14} />
                 </button>

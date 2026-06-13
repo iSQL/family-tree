@@ -14,8 +14,9 @@ export interface DialogProps {
   maxWidthClass?: string;
 }
 
-/** Modal preko portala: overlay + Escape + klik van zatvaraju. */
-export function Dialog({ open, onClose, title, children, footer, maxWidthClass = 'max-w-md' }: DialogProps) {
+/** Modal preko portala: overlay + Escape + klik van zatvaraju.
+ *  Na mobilnom je bottom-sheet (klizi odozdo, pun širine); na ≥640px centriran modal. */
+export function Dialog({ open, onClose, title, children, footer, maxWidthClass = 'sm:max-w-md' }: DialogProps) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -28,13 +29,13 @@ export function Dialog({ open, onClose, title, children, footer, maxWidthClass =
   if (!open) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden="true" />
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`relative w-full ${maxWidthClass} max-h-[90dvh] overflow-y-auto rounded-xl border border-stone-200 bg-white p-4 shadow-xl dark:border-stone-700 dark:bg-stone-900`}
+        className={`relative max-h-[90dvh] w-full ${maxWidthClass} overflow-y-auto rounded-t-2xl border-t border-stone-200 bg-white p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-xl sm:rounded-xl sm:border sm:pb-4 dark:border-stone-700 dark:bg-stone-900`}
       >
         <div className="mb-3 flex items-center justify-between gap-4">
           <h2 className="text-base font-semibold">{title}</h2>
@@ -42,9 +43,9 @@ export function Dialog({ open, onClose, title, children, footer, maxWidthClass =
             type="button"
             onClick={onClose}
             aria-label={STR.common.close}
-            className="cursor-pointer rounded-md p-1 text-stone-500 hover:bg-stone-200/70 dark:hover:bg-stone-700/70"
+            className="-mr-1 cursor-pointer rounded-md p-2 text-stone-500 hover:bg-stone-200/70 dark:hover:bg-stone-700/70"
           >
-            <X size={18} />
+            <X size={20} />
           </button>
         </div>
         {children}

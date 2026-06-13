@@ -47,7 +47,7 @@ export default function SettingsPage() {
         {/* Tema */}
         <Card>
           <CardHeader title={STR.settings.theme} />
-          <div className="flex gap-2 p-4">
+          <div className="flex flex-wrap gap-2 p-4">
             {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
               <Button
                 key={value}

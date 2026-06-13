@@ -9,7 +9,8 @@
       "PowerShell($env:Path = [Environment]::GetEnvironmentVariable\\('Path','Machine'\\) + ';' + [Environment]::GetEnvironmentVariable\\('Path','User'\\); \"vite-plugin-pwa peers:\"; npm view vite-plugin-pwa@1.3.0 peerDependencies; \"plugin-react peers:\"; npm view @vitejs/plugin-react@6.0.2 peerDependencies; \"tailwind-vite peers:\"; npm view @tailwindcss/vite@4.3.0 peerDependencies; \"types:\"; foreach \\($p in '@types/express','@types/multer','@types/supertest','@types/better-sqlite3','@types/react','@types/react-dom','@types/node'\\) { \"$p@$\\(npm view $p version 2>$null\\)\" }; \"ts5:\"; npm view typescript@5 version | Select-Object -Last 1)",
       "PowerShell($env:Path = [Environment]::GetEnvironmentVariable\\('Path','Machine'\\) + ';' + [Environment]::GetEnvironmentVariable\\('Path','User'\\); Set-Location C:\\\\Git\\\\family-tree; npm install --no-fund --no-audit 2>&1 | Select-Object -Last 15)",
       "Bash(sed -n 505,545p /c/Git/family-tree/node_modules/family-chart/dist/family-chart.esm.js)",
-      "Bash(sed -n 1040,1075p /c/Git/family-tree/node_modules/family-chart/dist/family-chart.esm.js)"
+      "Bash(sed -n 1040,1075p /c/Git/family-tree/node_modules/family-chart/dist/family-chart.esm.js)",
+      "PowerShell($env:Path = [Environment]::GetEnvironmentVariable\\('Path','Machine'\\) + ';' + [Environment]::GetEnvironmentVariable\\('Path','User'\\); Set-Location C:\\\\Git\\\\family-tree; npx tsc -p client/tsconfig.json --noEmit; \"client tsc exit: $LASTEXITCODE\")"
     ]
   }
 }

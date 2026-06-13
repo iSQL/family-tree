@@ -87,7 +87,7 @@ export function SearchBar() {
         onFocus={() => setOpen(true)}
         onBlur={() => window.setTimeout(() => setOpen(false), 150)}
         onKeyDown={onKeyDown}
-        className="w-full rounded-lg border border-stone-300 bg-stone-50 py-1.5 pr-3 pl-8 text-sm outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-600/30 dark:border-stone-600 dark:bg-stone-800"
+        className="w-full rounded-lg border border-stone-300 bg-stone-50 py-2 pr-3 pl-8 text-sm outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-600/30 sm:py-1.5 dark:border-stone-600 dark:bg-stone-800"
       />
       {open && query.trim() !== '' && (
         <ul className="absolute top-full right-0 left-0 z-40 mt-1 max-h-80 overflow-y-auto rounded-lg border border-stone-200 bg-white py-1 shadow-lg dark:border-stone-700 dark:bg-stone-900">

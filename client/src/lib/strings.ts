@@ -54,6 +54,9 @@ export const STR = {
     addFirstPerson: 'Dodaj prvu osobu',
     addPerson: 'Dodaj osobu',
     showInTree: 'Prikaži u stablu',
+    showFromHere: 'Prikaži stablo odavde',
+    wholeFamily: 'Cela porodica',
+    back: 'Prethodni pregled',
     loadFailed: 'Stablo nije moglo da se učita.',
   },
 

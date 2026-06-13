@@ -4,7 +4,9 @@ import { Plus, TreeDeciduous } from 'lucide-react';
 import { useTree } from '../hooks/useTree';
 import { useIsDesktop } from '../hooks/useIsDesktop';
 import { TreeCanvas } from '../components/tree/TreeCanvas';
+import { TreeControls } from '../components/tree/TreeControls';
 import { PersonDrawer } from '../components/person/PersonDrawer';
+import { PersonSheet } from '../components/person/PersonSheet';
 import { Button } from '../components/ui/Button';
 import { FullScreenSpinner } from '../components/ui/Spinner';
 import { STR } from '../lib/strings';
@@ -15,25 +17,48 @@ export default function TreePage() {
   const navigate = useNavigate();
   const isDesktop = useIsDesktop();
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [focusHistory, setFocusHistory] = useState<number[]>([]);
 
   const focusParam = searchParams.get('focus');
   const focusId = focusParam !== null && Number.isFinite(Number(focusParam)) ? Number(focusParam) : null;
 
-  const handlePersonClick = useCallback(
+  // Re-root stabla na osobu (dupli klik, „Prikaži stablo odavde", klik na srodnika).
+  const focusPerson = useCallback(
     (id: number) => {
-      if (isDesktop) setSelectedId(id);
-      else navigate(`/person/${id}`);
-    },
-    [isDesktop, navigate],
-  );
-
-  const handleFocusPerson = useCallback(
-    (id: number) => {
-      setSelectedId(id);
+      if (focusId !== null && focusId !== id) setFocusHistory((h) => [...h, focusId]);
       setSearchParams({ focus: String(id) }, { replace: true });
     },
-    [setSearchParams],
+    [focusId, setSearchParams],
   );
+
+  // Jednostruki klik na čvor — otvori detalje (drawer/sheet).
+  const handlePersonClick = useCallback((id: number) => setSelectedId(id), []);
+
+  // Klik na srodnika u panelu — re-root + zadrži panel na njemu.
+  const handleRelativeClick = useCallback(
+    (id: number) => {
+      focusPerson(id);
+      setSelectedId(id);
+    },
+    [focusPerson],
+  );
+
+  // „Prethodni pregled" — vrati fokus na prethodno fokusiranu osobu (ili celu porodicu).
+  const goBack = useCallback(() => {
+    if (focusHistory.length === 0) {
+      setSearchParams({}, { replace: true });
+      return;
+    }
+    const prev = focusHistory[focusHistory.length - 1]!;
+    setFocusHistory((h) => h.slice(0, -1));
+    setSearchParams({ focus: String(prev) }, { replace: true });
+  }, [focusHistory, setSearchParams]);
+
+  // „Cela porodica" — ukloni fokus, prikaži celo stablo.
+  const resetFocus = useCallback(() => {
+    setFocusHistory([]);
+    setSearchParams({}, { replace: true });
+  }, [setSearchParams]);
 
   if (isPending) return <FullScreenSpinner />;
 
@@ -62,25 +87,53 @@ export default function TreePage() {
     );
   }
 
+  const sheetOpen = !isDesktop && selectedId !== null;
+
   return (
     <div className="relative min-h-0 flex-1 overflow-hidden">
-      <TreeCanvas tree={tree} focusId={focusId} onPersonClick={handlePersonClick} />
+      <TreeCanvas
+        tree={tree}
+        focusId={focusId}
+        onPersonClick={handlePersonClick}
+        onPersonActivate={focusPerson}
+      />
 
-      {/* Plutajuće dugme za dodavanje */}
-      <Button
-        onClick={() => navigate('/person/new')}
-        className="absolute bottom-4 left-4 z-10 shadow-lg"
-        aria-label={STR.tree.addPerson}
-      >
-        <Plus size={16} aria-hidden="true" />
-        {STR.tree.addPerson}
-      </Button>
+      <TreeControls
+        canGoBack={focusHistory.length > 0}
+        hasFocus={focusId !== null}
+        onBack={goBack}
+        onReset={resetFocus}
+      />
+
+      {/* Plutajuće dugme za dodavanje — sakriveno dok je sheet otvoren */}
+      {!sheetOpen && (
+        <Button
+          onClick={() => navigate('/person/new')}
+          className="absolute bottom-4 left-4 z-10 rounded-full shadow-lg sm:rounded-lg"
+          aria-label={STR.tree.addPerson}
+        >
+          <Plus size={16} aria-hidden="true" />
+          <span className="hidden sm:inline">{STR.tree.addPerson}</span>
+        </Button>
+      )}
 
       {isDesktop && selectedId !== null && (
         <PersonDrawer
           personId={selectedId}
           onClose={() => setSelectedId(null)}
-          onFocusPerson={handleFocusPerson}
+          onFocusPerson={handleRelativeClick}
+          onShowInTree={focusPerson}
+        />
+      )}
+      {sheetOpen && selectedId !== null && (
+        <PersonSheet
+          personId={selectedId}
+          onClose={() => setSelectedId(null)}
+          onFocusPerson={handleRelativeClick}
+          onShowInTree={(id) => {
+            focusPerson(id);
+            setSelectedId(null);
+          }}
         />
       )}
     </div>

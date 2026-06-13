@@ -9,10 +9,12 @@ export interface PersonDrawerProps {
   onClose: () => void;
   /** Refokusira stablo na izabranog srodnika. */
   onFocusPerson: (id: number) => void;
+  /** „Prikaži stablo odavde" — re-root na trenutno otvorenu osobu. */
+  onShowInTree: (id: number) => void;
 }
 
 /** Desni drawer (≥768px) sa punim detaljima osobe. */
-export function PersonDrawer({ personId, onClose, onFocusPerson }: PersonDrawerProps) {
+export function PersonDrawer({ personId, onClose, onFocusPerson, onShowInTree }: PersonDrawerProps) {
   const { data: person, isPending, isError } = usePerson(personId);
 
   return (
@@ -25,7 +27,7 @@ export function PersonDrawer({ personId, onClose, onFocusPerson }: PersonDrawerP
           type="button"
           onClick={onClose}
           aria-label={STR.common.close}
-          className="cursor-pointer rounded-md p-1 text-stone-500 hover:bg-stone-200/70 dark:hover:bg-stone-700/70"
+          className="cursor-pointer rounded-md p-2 text-stone-500 hover:bg-stone-200/70 dark:hover:bg-stone-700/70"
         >
           <X size={18} />
         </button>
@@ -36,7 +38,12 @@ export function PersonDrawer({ personId, onClose, onFocusPerson }: PersonDrawerP
         ) : isError || !person ? (
           <p className="text-sm text-stone-500 dark:text-stone-400">{STR.person.notFound}</p>
         ) : (
-          <PersonDetailContent person={person} onPersonClick={onFocusPerson} onDeleted={onClose} />
+          <PersonDetailContent
+            person={person}
+            onPersonClick={onFocusPerson}
+            onShowInTree={onShowInTree}
+            onDeleted={onClose}
+          />
         )}
       </div>
     </aside>
