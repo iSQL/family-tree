@@ -6,6 +6,7 @@ import type { Gender, PersonSlim } from '@shared/types';
 import { personInputSchema, type PersonInput } from '@shared/schemas';
 import { useOnline } from '../../hooks/useOnline';
 import { Button } from '../ui/Button';
+import { DateInput } from '../ui/DateInput';
 import { Field, Input, Textarea } from '../ui/Input';
 import { Avatar } from './Avatar';
 import { RelativePicker } from './RelativePicker';
@@ -129,19 +130,31 @@ export function PersonForm({
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label={STR.person.birthDate} error={errors.birth_date?.message}>
-          <Input
-            {...register('birth_date')}
-            placeholder={STR.person.datePlaceholder}
-            inputMode="numeric"
-            autoComplete="off"
+          <Controller
+            name="birth_date"
+            control={control}
+            render={({ field }) => (
+              <DateInput
+                value={field.value}
+                onChange={field.onChange}
+                placeholder={STR.person.datePlaceholder}
+                invalid={Boolean(errors.birth_date)}
+              />
+            )}
           />
         </Field>
         <Field label={STR.person.deathDate} error={errors.death_date?.message}>
-          <Input
-            {...register('death_date')}
-            placeholder={STR.person.datePlaceholder}
-            inputMode="numeric"
-            autoComplete="off"
+          <Controller
+            name="death_date"
+            control={control}
+            render={({ field }) => (
+              <DateInput
+                value={field.value}
+                onChange={field.onChange}
+                placeholder={STR.person.datePlaceholder}
+                invalid={Boolean(errors.death_date)}
+              />
+            )}
           />
         </Field>
       </div>

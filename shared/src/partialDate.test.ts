@@ -4,8 +4,10 @@ import {
   comparePartialDates,
   daysBetween,
   formatPartialDate,
+  formatPartialDateInput,
   nextBirthday,
   parsePartialDate,
+  parsePartialDateInput,
 } from './partialDate';
 
 describe('parsePartialDate', () => {
@@ -68,7 +70,7 @@ describe('comparePartialDates', () => {
 
 describe('formatPartialDate', () => {
   it('formatira sva tri oblika za sr-Latn', () => {
-    expect(formatPartialDate('1956-03-15')).toBe('15. 3. 1956.');
+    expect(formatPartialDate('1956-03-15')).toBe('15.03.1956.');
     expect(formatPartialDate('1956-03')).toBe('mart 1956.');
     expect(formatPartialDate('1956')).toBe('1956.');
   });
@@ -76,6 +78,41 @@ describe('formatPartialDate', () => {
   it('prazan string za null/nevalidan ulaz', () => {
     expect(formatPartialDate(null)).toBe('');
     expect(formatPartialDate('1956-13')).toBe('');
+  });
+});
+
+describe('parsePartialDateInput', () => {
+  it('parsira evropski format u parcijalni ISO', () => {
+    expect(parsePartialDateInput('15.03.1956')).toBe('1956-03-15');
+    expect(parsePartialDateInput('03.1956')).toBe('1956-03');
+    expect(parsePartialDateInput('1956')).toBe('1956');
+  });
+
+  it('toleriše jednocifren dan/mesec i završnu tačku', () => {
+    expect(parsePartialDateInput('5.3.1956')).toBe('1956-03-05');
+    expect(parsePartialDateInput('15.03.1956.')).toBe('1956-03-15');
+  });
+
+  it('null za prazan ili nevalidan unos', () => {
+    expect(parsePartialDateInput('')).toBeNull();
+    expect(parsePartialDateInput(null)).toBeNull();
+    expect(parsePartialDateInput('1956-03-15')).toBeNull(); // ISO nije ulazni format
+    expect(parsePartialDateInput('29.02.2001')).toBeNull(); // nepostojeći datum
+    expect(parsePartialDateInput('32.01.2000')).toBeNull();
+    expect(parsePartialDateInput('abcd')).toBeNull();
+  });
+});
+
+describe('formatPartialDateInput', () => {
+  it('ISO → uredljiv evropski tekst (bez završne tačke)', () => {
+    expect(formatPartialDateInput('1956-03-15')).toBe('15.03.1956');
+    expect(formatPartialDateInput('1956-03')).toBe('03.1956');
+    expect(formatPartialDateInput('1956')).toBe('1956');
+  });
+
+  it('prazan string za null/nevalidan ulaz', () => {
+    expect(formatPartialDateInput(null)).toBe('');
+    expect(formatPartialDateInput('1956-13')).toBe('');
   });
 });
 

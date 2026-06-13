@@ -11,10 +11,15 @@ export interface PartialDate {
 
 const PARTIAL_RE = /^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$/;
 
-const MONTHS_SR = [
+export const MONTHS_SR = [
   'januar', 'februar', 'mart', 'april', 'maj', 'jun',
   'jul', 'avgust', 'septembar', 'oktobar', 'novembar', 'decembar',
 ] as const;
+
+/** Levo dopunjava broj nulama do dve cifre ('3' → '03'). */
+function pad2(n: number): string {
+  return String(n).padStart(2, '0');
+}
 
 function isLeapYear(year: number): boolean {
   return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
@@ -72,19 +77,67 @@ export function comparePartialDates(a: string | null | undefined, b: string | nu
 
 /**
  * Prikaz za sr-Latn:
- *  '1956-03-15' → '15. 3. 1956.'  |  '1956-03' → 'mart 1956.'  |  '1956' → '1956.'
+ *  '1956-03-15' → '15.03.1956.'  |  '1956-03' → 'mart 1956.'  |  '1956' → '1956.'
  * Prazan string za null/nevalidan ulaz.
  */
 export function formatPartialDate(value: string | null | undefined): string {
   const p = parsePartialDate(value);
   if (p === null) return '';
   if (p.day !== undefined && p.month !== undefined) {
-    return `${p.day}. ${p.month}. ${p.year}.`;
+    return `${pad2(p.day)}.${pad2(p.month)}.${p.year}.`;
   }
   if (p.month !== undefined) {
     return `${MONTHS_SR[p.month - 1]} ${p.year}.`;
   }
   return `${p.year}.`;
+}
+
+const INPUT_DMY_RE = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/;
+const INPUT_MY_RE = /^(\d{1,2})\.(\d{4})$/;
+const INPUT_Y_RE = /^(\d{4})$/;
+
+/**
+ * Parsira korisnički unos u evropskom formatu u parcijalni ISO datum:
+ *  'DD.MM.GGGG' → 'GGGG-MM-DD'  |  'MM.GGGG' → 'GGGG-MM'  |  'GGGG' → 'GGGG'
+ * Toleriše završnu tačku ('15.03.1956.'). null za prazan ili nevalidan unos.
+ */
+export function parsePartialDateInput(value: string | null | undefined): string | null {
+  if (value == null) return null;
+  let s = value.trim();
+  if (s === '') return null;
+  if (s.endsWith('.')) s = s.slice(0, -1).trim();
+
+  let iso: string | null = null;
+  let m: RegExpExecArray | null;
+  if ((m = INPUT_DMY_RE.exec(s))) {
+    iso = `${m[3]}-${pad2(Number(m[2]))}-${pad2(Number(m[1]))}`;
+  } else if ((m = INPUT_MY_RE.exec(s))) {
+    iso = `${m[2]}-${pad2(Number(m[1]))}`;
+  } else if ((m = INPUT_Y_RE.exec(s))) {
+    iso = m[1]!;
+  } else {
+    return null;
+  }
+  // Validacija opsega (meseci, dani, prestupne godine) preko parsera.
+  return parsePartialDate(iso) ? iso : null;
+}
+
+/**
+ * Parcijalni ISO datum → uredljiv tekst za polje unosa (bez završne tačke, vodeće nule):
+ *  '1956-03-15' → '15.03.1956'  |  '1956-03' → '03.1956'  |  '1956' → '1956'
+ * Prazan string za null/nevalidan ulaz.
+ */
+export function formatPartialDateInput(value: string | null | undefined): string {
+  const p = parsePartialDate(value);
+  if (p === null) return '';
+  const y = String(p.year).padStart(4, '0');
+  if (p.day !== undefined && p.month !== undefined) {
+    return `${pad2(p.day)}.${pad2(p.month)}.${y}`;
+  }
+  if (p.month !== undefined) {
+    return `${pad2(p.month)}.${y}`;
+  }
+  return y;
 }
 
 /** Normalizuje `at` u lokalne (year, month, day) komponente. */

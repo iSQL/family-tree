@@ -4,8 +4,9 @@ import { partialDateRegex } from '@shared/schemas';
 import { useUpdateUnion } from '../../hooks/useMutations';
 import { useOnline } from '../../hooks/useOnline';
 import { Button } from '../ui/Button';
+import { DateInput } from '../ui/DateInput';
 import { Dialog } from '../ui/Dialog';
-import { Field, Input } from '../ui/Input';
+import { Field } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { STR } from '../../lib/strings';
 
@@ -77,19 +78,19 @@ export function UnionForm({ open, onClose, union }: UnionFormProps) {
           </Select>
         </Field>
         <Field label={STR.union.startDate} error={startError}>
-          <Input
+          <DateInput
             value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
+            onChange={setStartDate}
             placeholder={STR.person.datePlaceholder}
-            inputMode="numeric"
+            invalid={Boolean(startError)}
           />
         </Field>
         <Field label={STR.union.endDate} error={endError}>
-          <Input
+          <DateInput
             value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
+            onChange={setEndDate}
             placeholder={STR.person.datePlaceholder}
-            inputMode="numeric"
+            invalid={Boolean(endError)}
           />
         </Field>
         <Field label={STR.union.endReason}>

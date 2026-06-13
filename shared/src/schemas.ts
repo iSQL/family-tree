@@ -19,7 +19,7 @@ function isRealPartialDate(value: string): boolean {
 
 export const partialDateSchema = z
   .string()
-  .regex(partialDateRegex, 'Datum mora biti u formatu YYYY, YYYY-MM ili YYYY-MM-DD')
+  .regex(partialDateRegex, 'Datum mora biti u formatu DD.MM.GGGG, MM.GGGG ili GGGG')
   .refine(isRealPartialDate, 'Nepostojeći datum');
 
 /** '' | undefined | null → null; inače validira unutrašnju šemu. U .partial() šemama
