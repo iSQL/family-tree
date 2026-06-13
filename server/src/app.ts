@@ -5,7 +5,7 @@ import { getIronSession, type SessionOptions } from 'iron-session';
 import type { DB } from './db';
 import type { AppConfig } from './config';
 import type { SessionData } from './middleware/session';
-import { requireAuth } from './middleware/auth';
+import { blockReadonlyWrites, requireAuth } from './middleware/auth';
 import { createCsrfOriginCheck } from './middleware/csrfOrigin';
 import { createErrorHandler } from './middleware/errors';
 import { createAuthRouter } from './routes/auth';
@@ -60,6 +60,7 @@ export function createApp(cfg: AppConfig, db: DB): express.Express {
 
   // sve ispod je iza auth-a
   app.use('/api', requireAuth(cfg));
+  app.use('/api', blockReadonlyWrites(cfg));
   app.use('/api/tree', createTreeRouter(db));
   app.use('/api/persons', createPersonsRouter(db, cfg));
   app.use('/api/unions', createUnionsRouter(db));

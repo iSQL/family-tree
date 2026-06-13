@@ -83,6 +83,8 @@ export type AuthMode = 'password' | 'disabled';
 export interface SessionInfo {
   authenticated: boolean;
   auth_mode: AuthMode;
+  /** true kad nalog ima pravo samo na pregled — klijent sakriva sve izmene. */
+  readonly: boolean;
 }
 
 /** Standardno telo greške za sve /api/* rute. */

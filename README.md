@@ -2,6 +2,8 @@
 
 Web PWA aplikacija za porodično stablo: interaktivni prikaz, unos i izmena osoba i veza, slike, pretraga, rođendani i godišnjice, vremenska linija, kalkulator srodstva sa srpskim terminima i GEDCOM import/export. Radi offline (read-only) i može da se instalira na telefon/računar.
 
+Datumi se prikazuju i unose u formatu `DD.MM.GGGG` (uz kalendar za izbor i podršku za nepotpune datume — npr. samo godina). Pored pune porodične lozinke, postoji i opciona lozinka **samo za pregled** (vidi `READONLY_PASSWORD` ispod).
+
 ## Tehnologije
 
 - **Klijent:** React 19 + Vite 8, Tailwind CSS 4, TanStack Query, react-router, [family-chart](https://github.com/donatso/family-chart) za prikaz stabla, vite-plugin-pwa (Workbox)
@@ -36,8 +38,9 @@ Korisne skripte:
 Vidi [.env.example](.env.example). Ključno:
 
 - `AUTH_PASSWORD` — zajednička porodična lozinka (produkcija)
+- `READONLY_PASSWORD` — *(opciono)* lozinka za pristup **samo za pregled**: ko se prijavi njom može da gleda stablo, ali ne može ništa da menja (dodaje/menja/briše/uvozi). Mora se razlikovati od `AUTH_PASSWORD`; ostavi prazno da bi se isključilo
 - `SESSION_SECRET` — min 32 karaktera, za potpisivanje session cookie-ja
-- `AUTH_DISABLED=true` — isključuje prijavu, **poštuje se samo van produkcije**; u produkciji server odbija da se pokrene sa ovim flagom (fail-safe)
+- `AUTH_DISABLED=true` — isključuje prijavu, **poštuje se samo van produkcije**; u produkciji server odbija da se pokrene sa ovim flagom (fail-safe). Dok je uključen sve je pun pristup, pa se režim samo za pregled aktivira tek kad je prijava uključena
 - `DATA_DIR` — direktorijum sa celokupnim stanjem: SQLite baza, slike, bekapi
 
 ## Produkcija (Docker)

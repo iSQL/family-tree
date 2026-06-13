@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, TreeDeciduous } from 'lucide-react';
 import { useTree } from '../hooks/useTree';
 import { useIsDesktop } from '../hooks/useIsDesktop';
+import { useReadonly } from '../hooks/useAccess';
 import { TreeCanvas } from '../components/tree/TreeCanvas';
 import { TreeControls } from '../components/tree/TreeControls';
 import { PersonDrawer } from '../components/person/PersonDrawer';
@@ -16,6 +17,7 @@ export default function TreePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const isDesktop = useIsDesktop();
+  const readonly = useReadonly();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [focusHistory, setFocusHistory] = useState<number[]>([]);
 
@@ -79,10 +81,12 @@ export default function TreePage() {
           <h2 className="text-lg font-semibold">{STR.tree.emptyTitle}</h2>
           <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{STR.tree.emptyText}</p>
         </div>
-        <Button onClick={() => navigate('/person/new')}>
-          <Plus size={16} aria-hidden="true" />
-          {STR.tree.addFirstPerson}
-        </Button>
+        {!readonly && (
+          <Button onClick={() => navigate('/person/new')}>
+            <Plus size={16} aria-hidden="true" />
+            {STR.tree.addFirstPerson}
+          </Button>
+        )}
       </div>
     );
   }
@@ -105,8 +109,8 @@ export default function TreePage() {
         onReset={resetFocus}
       />
 
-      {/* Plutajuće dugme za dodavanje — sakriveno dok je sheet otvoren */}
-      {!sheetOpen && (
+      {/* Plutajuće dugme za dodavanje — sakriveno dok je sheet otvoren ili u režimu pregleda */}
+      {!sheetOpen && !readonly && (
         <Button
           onClick={() => navigate('/person/new')}
           className="absolute bottom-4 left-4 z-10 rounded-full shadow-lg sm:rounded-lg"

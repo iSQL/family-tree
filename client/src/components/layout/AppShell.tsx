@@ -9,6 +9,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { OfflineBanner } from './OfflineBanner';
+import { ReadonlyBanner } from './ReadonlyBanner';
 import { SearchBar } from '../search/SearchBar';
 import { STR } from '../../lib/strings';
 
@@ -46,6 +47,7 @@ export function AppShell() {
   return (
     <div className="flex h-dvh flex-col pt-[env(safe-area-inset-top)]">
       <OfflineBanner />
+      <ReadonlyBanner />
 
       {/* Desktop top bar */}
       <header className="hidden items-center gap-4 border-b border-stone-200 bg-white px-4 py-2 md:flex dark:border-stone-700 dark:bg-stone-900">

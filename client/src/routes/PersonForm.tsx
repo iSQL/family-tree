@@ -1,9 +1,10 @@
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import type { PersonDetail, PersonSlim, TreeResponse } from '@shared/types';
 import type { PersonInput, PersonPatch } from '@shared/schemas';
 import { useTree } from '../hooks/useTree';
 import { usePerson } from '../hooks/usePerson';
+import { useReadonly } from '../hooks/useAccess';
 import { useCreatePerson, useCreateUnion, useUpdatePerson } from '../hooks/useMutations';
 import { PersonForm, type PersonFormValues } from '../components/person/PersonForm';
 import { Button } from '../components/ui/Button';
@@ -105,6 +106,7 @@ export default function PersonFormPage() {
   const parentOf = parseIdParam(searchParams.get('parentOf'));
 
   const navigate = useNavigate();
+  const readonly = useReadonly();
   const { data: tree, isPending: treePending } = useTree();
   const { data: editing, isPending: personPending, isError: personError } = usePerson(isEdit ? editId : null);
 
@@ -147,6 +149,9 @@ export default function PersonFormPage() {
       },
     });
   };
+
+  // Režim samo za pregled nema pristup formama za unos/izmenu.
+  if (readonly) return <Navigate to="/" replace />;
 
   if (treePending || !tree || (isEdit && personPending)) {
     return <FullScreenSpinner />;

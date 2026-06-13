@@ -29,13 +29,17 @@ export function createAuthRouter(cfg: AppConfig): Router {
 
   router.post('/login', loginLimiter, async (req, res) => {
     const { password } = loginSchema.parse(req.body);
-    const ok = cfg.authDisabled || (cfg.authPassword !== '' && passwordsEqual(password, cfg.authPassword));
-    if (!ok) {
+    // Obe provere se uvek izvršavaju (bez ranog izlaska) da se ne otkrije koja je lozinka pogođena.
+    const fullOk = cfg.authPassword !== '' && passwordsEqual(password, cfg.authPassword);
+    const readonlyOk = cfg.readonlyPassword !== '' && passwordsEqual(password, cfg.readonlyPassword);
+    if (!cfg.authDisabled && !fullOk && !readonlyOk) {
       await sleep(500);
       res.status(401).json({ error: 'invalid_credentials', message: 'Pogrešna lozinka' });
       return;
     }
     req.session.authenticated = true;
+    // Read-only samo ako je pogođena ISKLJUČIVO read-only lozinka (puna lozinka uvek daje pun pristup).
+    req.session.readonly = !cfg.authDisabled && !fullOk && readonlyOk;
     await req.session.save();
     res.status(204).end();
   });
@@ -49,6 +53,7 @@ export function createAuthRouter(cfg: AppConfig): Router {
     const info: SessionInfo = {
       authenticated: cfg.authDisabled ? true : req.session.authenticated === true,
       auth_mode: cfg.authDisabled ? 'disabled' : 'password',
+      readonly: !cfg.authDisabled && req.session.readonly === true,
     };
     res.json(info);
   });

@@ -21,7 +21,7 @@ Node ≥ 22.12 required. Workspaces: `client`, `server` (top-level `npm install`
 
 Run a single test file: `npx vitest run server/src/persons.test.ts` (or pass a name pattern with `-t`).
 
-Dev mode runs with `AUTH_DISABLED=true` so the login screen is skipped. The server **refuses to start** in production with `AUTH_DISABLED=true` (fail-safe in [server/src/config.ts](server/src/config.ts)). Production also requires `AUTH_PASSWORD` and a `SESSION_SECRET` ≥ 32 chars.
+Dev mode runs with `AUTH_DISABLED=true` so the login screen is skipped. The server **refuses to start** in production with `AUTH_DISABLED=true` (fail-safe in [server/src/config.ts](server/src/config.ts)). Production also requires `AUTH_PASSWORD` and a `SESSION_SECRET` ≥ 32 chars. An optional `READONLY_PASSWORD` (must differ from `AUTH_PASSWORD`) grants view-only access. Note: when `AUTH_DISABLED=true` everything is full access, so the read-only flow only activates with auth enabled.
 
 ## Architecture
 
@@ -29,7 +29,7 @@ Dev mode runs with `AUTH_DISABLED=true` so the login screen is skipped. The serv
 
 - `shared/src/` is the **only contract** between client and server: `types.ts` (DTOs), `schemas.ts` (zod validators — used by server for input parsing and client forms), plus pure logic (`partialDate.ts`, `search.ts`, `kinship/`). Imported as `@shared/*` (path alias in [tsconfig.base.json](tsconfig.base.json), [vitest.config.ts](vitest.config.ts), and the client's [vite.config.ts](client/vite.config.ts)).
 - DTO ↔ DB convention: **snake_case keys, 1:1 with SQLite columns**. Don't rename in transit.
-- Partial dates everywhere: birth/death/union start/end are strings in `'YYYY' | 'YYYY-MM' | 'YYYY-MM-DD'` format. Validate via `partialDateSchema`.
+- Partial dates everywhere: birth/death/union start/end are stored/validated as ISO strings `'YYYY' | 'YYYY-MM' | 'YYYY-MM-DD'` (`partialDateSchema`). **Display** is European: full dates render `15.03.1956.` (`formatPartialDate`), partial dates keep a named month (`mart 1956.` / `1956.`). **Input** is European too — `parsePartialDateInput`/`formatPartialDateInput` convert between `DD.MM.GGGG`/`MM.GGGG`/`GGGG` and the stored ISO. ISO remains the only on-the-wire/DB format; the European format never leaves the UI layer.
 
 ### Server (`server/src/`)
 
@@ -39,7 +39,7 @@ Dev mode runs with `AUTH_DISABLED=true` so the login screen is skipped. The serv
 - DB: [db.ts](server/src/db.ts) opens better-sqlite3 with `journal_mode=WAL`, `foreign_keys=ON`, runs migrations. Migrations are **inline strings** in [migrations.ts](server/src/migrations.ts) (bundle-safe, no `.sql` files on disk) and gated by `PRAGMA user_version`. To change schema, append a new migration object — never edit an existing one.
 - Schema invariants: `persons.father_id`/`mother_id` are self-references with `ON DELETE SET NULL`. `unions` enforce `partner1_id < partner2_id` at the DB level — **the server canonicalizes order** before insert (this is why unions don't have "from one side or the other" semantics; child relations are independent of unions and live on `persons`).
 - Routes are thin (parse with zod → call service → respond). Business logic lives in `services/` (`personService.ts`, `photoService.ts`, `backup.ts`). PATCH uses `onlyPresentKeys` from [lib/patch.ts](server/src/lib/patch.ts) to distinguish "field omitted" from "field set to null".
-- Auth: shared family password (single tenant). Session in an iron-session cookie. CSRF defense is origin-based ([middleware/csrfOrigin.ts](server/src/middleware/csrfOrigin.ts)). `requireAuth` is bypassed when `cfg.authDisabled` is true.
+- Auth: shared family password (single tenant). Session in an iron-session cookie. CSRF defense is origin-based ([middleware/csrfOrigin.ts](server/src/middleware/csrfOrigin.ts)). `requireAuth` is bypassed when `cfg.authDisabled` is true. Login accepts either `AUTH_PASSWORD` (full access) or the optional `READONLY_PASSWORD`; the latter sets `session.readonly`, and `blockReadonlyWrites` ([middleware/auth.ts](server/src/middleware/auth.ts), mounted after `requireAuth` in [app.ts](server/src/app.ts)) rejects any non-GET/HEAD/OPTIONS request with 403 — this is the real read-only guard; the client only hides write affordances. `GET /api/auth/session` returns `readonly` so the client can adapt.
 - Errors: routes `throw new AppError(status, code)`; the error middleware ([middleware/errors.ts](server/src/middleware/errors.ts)) shapes them into `ApiErrorBody`.
 - Tests use [testHelpers.ts](server/src/testHelpers.ts) — `testApp()` builds an in-memory SQLite app, `insertPerson()` is a direct DB fixture. Test config sets `nodeEnv='test'`, `authDisabled=true`. Note: `testHelpers.ts` is **not** a test file (vitest only collects `*.test.ts`).
 
@@ -51,6 +51,8 @@ Dev mode runs with `AUTH_DISABLED=true` so the login screen is skipped. The serv
 - [lib/toF3.ts](client/src/lib/toF3.ts) is the **only** module that knows about the family-chart datum format — it converts `TreeResponse` to f3's `{id, data, rels}` shape. Keep `TreeCanvas` as the only consumer of `family-chart`.
 - PWA caching policy (in [vite.config.ts](client/vite.config.ts)): photos are `CacheFirst` (30 days), `/api/(tree|persons)` is `NetworkFirst` with a 3s timeout, `/api/auth` is **never** cached, and `/api/*` is excluded from the SPA shell fallback. Service worker uses `registerType: 'autoUpdate'`.
 - Dev server proxies `/api` → `http://localhost:3001` so the client always talks to the same origin in both dev and prod.
+- Date entry goes through [components/ui/DateInput.tsx](client/src/components/ui/DateInput.tsx) — a `DD.MM.GGGG` text field plus a Serbian (Monday-first) calendar popover. It holds the stored ISO partial date and converts via `parsePartialDateInput`/`formatPartialDateInput`; on invalid input it passes the raw text up so the zod resolver surfaces the error. It's the only date-entry control (used by `PersonForm` and `UnionForm`).
+- Read-only access: [hooks/useAccess.ts](client/src/hooks/useAccess.ts) exposes `useReadonly()` and `useCanWrite()` (= online && !readonly). Write affordances are hidden for read-only sessions (`PersonDetailContent`, `Tree`, `Gedcom` import; `PersonForm` route redirects), and [ReadonlyBanner](client/src/components/layout/ReadonlyBanner.tsx) shows the mode. This is UX only — the server middleware is the actual guard.
 
 ### Kinship calculator (`shared/src/kinship/`)
 

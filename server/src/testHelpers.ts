@@ -16,6 +16,7 @@ export function testConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     dataDir: fs.mkdtempSync(path.join(os.tmpdir(), 'ft-test-')),
     authDisabled: true,
     authPassword: 'tajna-lozinka',
+    readonlyPassword: '',
     sessionSecret: 'test-secret-'.padEnd(32, 'x'),
     clientDist: '../client/dist',
     ...overrides,

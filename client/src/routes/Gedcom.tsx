@@ -5,6 +5,7 @@ import { AlertTriangle, Download, Upload } from 'lucide-react';
 import type { GedcomImportResult } from '@shared/types';
 import { gedcomImport } from '../api/client';
 import { useOnline } from '../hooks/useOnline';
+import { useReadonly } from '../hooks/useAccess';
 import { Button } from '../components/ui/Button';
 import { Card, CardHeader } from '../components/ui/Card';
 import { ConfirmDialog } from '../components/ui/Dialog';
@@ -70,6 +71,7 @@ function ImportResultView({ result }: { result: GedcomImportResult }) {
 
 export default function GedcomPage() {
   const online = useOnline();
+  const readonly = useReadonly();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -145,7 +147,8 @@ export default function GedcomPage() {
           </div>
         </Card>
 
-        {/* Uvoz */}
+        {/* Uvoz — sakriven u režimu samo za pregled */}
+        {!readonly && (
         <Card>
           <CardHeader title={STR.gedcom.importTitle} />
           <div className="space-y-4 p-4">
@@ -235,21 +238,24 @@ export default function GedcomPage() {
             </div>
           </div>
         </Card>
+        )}
 
         {result && <ImportResultView result={result} />}
 
-        <ConfirmDialog
-          open={confirmOpen}
-          title={STR.gedcom.confirmReplaceTitle}
-          text={STR.gedcom.confirmReplaceText}
-          confirmLabel={STR.gedcom.confirmReplaceLabel}
-          busy={busy}
-          onClose={() => setConfirmOpen(false)}
-          onConfirm={() => {
-            setConfirmOpen(false);
-            importMutation.mutate({ dryRun: false });
-          }}
-        />
+        {!readonly && (
+          <ConfirmDialog
+            open={confirmOpen}
+            title={STR.gedcom.confirmReplaceTitle}
+            text={STR.gedcom.confirmReplaceText}
+            confirmLabel={STR.gedcom.confirmReplaceLabel}
+            busy={busy}
+            onClose={() => setConfirmOpen(false)}
+            onConfirm={() => {
+              setConfirmOpen(false);
+              importMutation.mutate({ dryRun: false });
+            }}
+          />
+        )}
       </div>
     </div>
   );

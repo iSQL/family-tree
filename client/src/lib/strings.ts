@@ -33,6 +33,10 @@ export const STR = {
     banner: 'Nema interneta — izmene su onemogućene',
   },
 
+  readonly: {
+    banner: 'Režim samo za pregled — izmene su onemogućene',
+  },
+
   login: {
     title: 'Prijava',
     intro: 'Unesite porodičnu lozinku da biste pristupili stablu.',
@@ -156,6 +160,7 @@ export const STR = {
     sessionSection: 'Sesija',
     account: 'Nalog',
     authDisabledNote: 'Prijava je isključena u dev modu.',
+    readonlyNote: 'Prijavljeni ste u režimu samo za pregled. Izmene nisu dozvoljene.',
     dataSection: 'Podaci',
     personsCount: 'Osoba u stablu',
     unionsCount: 'Brakova i partnerstava',

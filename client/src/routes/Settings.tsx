@@ -5,6 +5,7 @@ import { ChevronRight, Download, FileText, LogOut, Monitor, Moon, Sun, type Luci
 import { apiFetch } from '../api/client';
 import { useInstallPrompt } from '../hooks/useInstallPrompt';
 import { useOnline } from '../hooks/useOnline';
+import { useReadonly } from '../hooks/useAccess';
 import { useSession } from '../hooks/useSession';
 import { useTree } from '../hooks/useTree';
 import { useTheme, type Theme } from '../lib/theme';
@@ -24,6 +25,7 @@ export default function SettingsPage() {
   const { data: session } = useSession();
   const { data: tree } = useTree();
   const online = useOnline();
+  const readonly = useReadonly();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -101,15 +103,20 @@ export default function SettingsPage() {
             {session?.auth_mode === 'disabled' ? (
               <p className="text-sm text-stone-500 dark:text-stone-400">{STR.settings.authDisabledNote}</p>
             ) : (
-              <Button
-                variant="secondary"
-                onClick={() => logout.mutate()}
-                disabled={!online || logout.isPending}
-                title={!online ? STR.common.offlineDisabled : undefined}
-              >
-                <LogOut size={16} aria-hidden="true" />
-                {STR.session.logout}
-              </Button>
+              <div className="space-y-3">
+                {readonly && (
+                  <p className="text-sm text-amber-700 dark:text-amber-400">{STR.settings.readonlyNote}</p>
+                )}
+                <Button
+                  variant="secondary"
+                  onClick={() => logout.mutate()}
+                  disabled={!online || logout.isPending}
+                  title={!online ? STR.common.offlineDisabled : undefined}
+                >
+                  <LogOut size={16} aria-hidden="true" />
+                  {STR.session.logout}
+                </Button>
+              </div>
             )}
           </div>
         </Card>

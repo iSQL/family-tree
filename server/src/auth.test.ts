@@ -36,7 +36,7 @@ describe('auth — password mode', () => {
     expect(tree.status).toBe(200);
 
     const session = await agent.get('/api/auth/session');
-    expect(session.body).toEqual({ authenticated: true, auth_mode: 'password' });
+    expect(session.body).toEqual({ authenticated: true, auth_mode: 'password', readonly: false });
 
     const logout = await agent.post('/api/auth/logout');
     expect(logout.status).toBe(204);
@@ -66,11 +66,54 @@ describe('auth — password mode', () => {
   });
 });
 
+describe('auth — read-only lozinka', () => {
+  const cfg = { authDisabled: false, authPassword: 'puna', readonlyPassword: 'pregled' };
+
+  it('read-only lozinka → 204, session readonly:true, čitanje radi', async () => {
+    const { app } = testApp(cfg);
+    const agent = request.agent(app);
+
+    const login = await agent.post('/api/auth/login').send({ password: 'pregled' });
+    expect(login.status).toBe(204);
+
+    const session = await agent.get('/api/auth/session');
+    expect(session.body).toEqual({ authenticated: true, auth_mode: 'password', readonly: true });
+
+    const tree = await agent.get('/api/tree');
+    expect(tree.status).toBe(200);
+  });
+
+  it('read-only sesija: mutacije (POST/DELETE) → 403 forbidden_readonly', async () => {
+    const { app } = testApp(cfg);
+    const agent = request.agent(app);
+    await agent.post('/api/auth/login').send({ password: 'pregled' });
+
+    const created = await agent.post('/api/persons').send({ first_name: 'Test', gender: 'M' });
+    expect(created.status).toBe(403);
+    expect(created.body.error).toBe('forbidden_readonly');
+
+    const deleted = await agent.delete('/api/persons/1');
+    expect(deleted.status).toBe(403);
+  });
+
+  it('puna lozinka daje pun pristup (readonly:false), mutacije rade', async () => {
+    const { app } = testApp(cfg);
+    const agent = request.agent(app);
+    await agent.post('/api/auth/login').send({ password: 'puna' });
+
+    const session = await agent.get('/api/auth/session');
+    expect(session.body.readonly).toBe(false);
+
+    const created = await agent.post('/api/persons').send({ first_name: 'Test', gender: 'M' });
+    expect(created.status).toBe(201);
+  });
+});
+
 describe('auth — disabled mode', () => {
   it('session vraća auth_mode disabled, zaštićene rute rade bez prijave', async () => {
     const { app } = testApp({ authDisabled: true });
     const session = await request(app).get('/api/auth/session');
-    expect(session.body).toEqual({ authenticated: true, auth_mode: 'disabled' });
+    expect(session.body).toEqual({ authenticated: true, auth_mode: 'disabled', readonly: false });
 
     const tree = await request(app).get('/api/tree');
     expect(tree.status).toBe(200);

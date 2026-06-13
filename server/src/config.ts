@@ -7,6 +7,8 @@ export interface AppConfig {
   dataDir: string;
   authDisabled: boolean;
   authPassword: string;
+  /** Opciona lozinka za pristup samo za pregled (read-only). Prazno = isključeno. */
+  readonlyPassword: string;
   sessionSecret: string;
   clientDist: string;
 }
@@ -36,7 +38,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   }
 
   const authPassword = env.AUTH_PASSWORD ?? '';
+  const readonlyPassword = env.READONLY_PASSWORD ?? '';
   let sessionSecret = env.SESSION_SECRET ?? '';
+
+  if (readonlyPassword !== '' && readonlyPassword === authPassword) {
+    throw new Error('READONLY_PASSWORD mora biti različit od AUTH_PASSWORD.');
+  }
 
   if (nodeEnv === 'production') {
     if (!authPassword) {
@@ -60,6 +67,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     dataDir: env.DATA_DIR ?? '../data',
     authDisabled,
     authPassword,
+    readonlyPassword,
     sessionSecret,
     clientDist: env.CLIENT_DIST ?? '../client/dist',
   };

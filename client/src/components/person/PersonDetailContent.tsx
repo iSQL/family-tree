@@ -4,6 +4,7 @@ import { Heart, Pencil, TreeDeciduous, Trash2, UserPlus } from 'lucide-react';
 import type { PersonDetail, PersonSlim, UnionWithPartner } from '@shared/types';
 import { useDeletePerson, useDeleteUnion } from '../../hooks/useMutations';
 import { useOnline } from '../../hooks/useOnline';
+import { useReadonly } from '../../hooks/useAccess';
 import { formatLifespan, formatPartialDate } from '../../lib/dates';
 import { Avatar } from './Avatar';
 import { UnionForm } from './UnionForm';
@@ -76,6 +77,7 @@ export interface PersonDetailContentProps {
 export function PersonDetailContent({ person, onPersonClick, onShowInTree, onDeleted }: PersonDetailContentProps) {
   const navigate = useNavigate();
   const online = useOnline();
+  const readonly = useReadonly();
   const deletePerson = useDeletePerson();
   const deleteUnion = useDeleteUnion();
 
@@ -118,52 +120,56 @@ export function PersonDetailContent({ person, onPersonClick, onShowInTree, onDel
             {STR.tree.showFromHere}
           </Button>
         )}
-        <Button size="sm" onClick={() => navigate(`/person/${person.id}/edit`)} disabled={!online} title={offlineTitle}>
-          <Pencil size={14} aria-hidden="true" />
-          {STR.common.edit}
-        </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => navigate(`/person/new?childOf=${person.id}`)}
-          disabled={!online}
-          title={offlineTitle}
-        >
-          <UserPlus size={14} aria-hidden="true" />
-          {STR.person.addChild}
-        </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => navigate(`/person/new?spouseOf=${person.id}`)}
-          disabled={!online}
-          title={offlineTitle}
-        >
-          <Heart size={14} aria-hidden="true" />
-          {STR.person.addSpouse}
-        </Button>
-        {(person.father === null || person.mother === null) && (
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => navigate(`/person/new?parentOf=${person.id}`)}
-            disabled={!online}
-            title={offlineTitle}
-          >
-            <UserPlus size={14} aria-hidden="true" />
-            {STR.person.addParent}
-          </Button>
+        {!readonly && (
+          <>
+            <Button size="sm" onClick={() => navigate(`/person/${person.id}/edit`)} disabled={!online} title={offlineTitle}>
+              <Pencil size={14} aria-hidden="true" />
+              {STR.common.edit}
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => navigate(`/person/new?childOf=${person.id}`)}
+              disabled={!online}
+              title={offlineTitle}
+            >
+              <UserPlus size={14} aria-hidden="true" />
+              {STR.person.addChild}
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => navigate(`/person/new?spouseOf=${person.id}`)}
+              disabled={!online}
+              title={offlineTitle}
+            >
+              <Heart size={14} aria-hidden="true" />
+              {STR.person.addSpouse}
+            </Button>
+            {(person.father === null || person.mother === null) && (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => navigate(`/person/new?parentOf=${person.id}`)}
+                disabled={!online}
+                title={offlineTitle}
+              >
+                <UserPlus size={14} aria-hidden="true" />
+                {STR.person.addParent}
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="danger"
+              onClick={() => setConfirmDeleteOpen(true)}
+              disabled={!online}
+              title={offlineTitle}
+            >
+              <Trash2 size={14} aria-hidden="true" />
+              {STR.common.delete}
+            </Button>
+          </>
         )}
-        <Button
-          size="sm"
-          variant="danger"
-          onClick={() => setConfirmDeleteOpen(true)}
-          disabled={!online}
-          title={offlineTitle}
-        >
-          <Trash2 size={14} aria-hidden="true" />
-          {STR.common.delete}
-        </Button>
       </div>
 
       {/* Roditelji */}
@@ -210,26 +216,30 @@ export function PersonDetailContent({ person, onPersonClick, onShowInTree, onDel
                   )}
                   <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">{unionSummary(u)}</p>
                 </div>
-                <button
-                  type="button"
-                  aria-label={STR.union.editTitle}
-                  onClick={() => setEditUnion(u)}
-                  disabled={!online}
-                  title={offlineTitle}
-                  className="cursor-pointer rounded-md p-2.5 text-stone-400 hover:bg-stone-200/70 hover:text-stone-700 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-stone-700 dark:hover:text-stone-200"
-                >
-                  <Pencil size={14} />
-                </button>
-                <button
-                  type="button"
-                  aria-label={STR.union.deleteConfirmTitle}
-                  onClick={() => setDeleteUnionTarget(u)}
-                  disabled={!online}
-                  title={offlineTitle}
-                  className="cursor-pointer rounded-md p-2.5 text-stone-400 hover:bg-red-100 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-red-950 dark:hover:text-red-400"
-                >
-                  <Trash2 size={14} />
-                </button>
+                {!readonly && (
+                  <>
+                    <button
+                      type="button"
+                      aria-label={STR.union.editTitle}
+                      onClick={() => setEditUnion(u)}
+                      disabled={!online}
+                      title={offlineTitle}
+                      className="cursor-pointer rounded-md p-2.5 text-stone-400 hover:bg-stone-200/70 hover:text-stone-700 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-stone-700 dark:hover:text-stone-200"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={STR.union.deleteConfirmTitle}
+                      onClick={() => setDeleteUnionTarget(u)}
+                      disabled={!online}
+                      title={offlineTitle}
+                      className="cursor-pointer rounded-md p-2.5 text-stone-400 hover:bg-red-100 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-red-950 dark:hover:text-red-400"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </>
+                )}
               </li>
             ))}
           </ul>
