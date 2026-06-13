@@ -1,0 +1,48 @@
+# Docker Compose za Coolify (https://coolify.io)
+#
+# Coolify obezbeđuje reverse proxy + automatski HTTPS (Let's Encrypt), pa Caddy
+# iz deploy/ NIJE potreban. Uputstvo korak-po-korak: deploy/COOLIFY.md
+#
+# Korišćenje: u Coolify napravi resurs tipa "Docker Compose", poveži ovaj repo,
+# a u podešavanjima resursa postavi "Docker Compose Location" na
+# /docker-compose.coolify.yml. Zatim postavi AUTH_PASSWORD i domen, pa Deploy.
+
+services:
+  family-tree:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      # Coolify generiše domen i usmerava HTTPS saobraćaj na port 3001 kontejnera.
+      # (Domen možeš promeniti u Coolify UI; Caddy/Traefik radi TLS terminaciju.)
+      - SERVICE_FQDN_FAMILYTREE_3001
+      - NODE_ENV=production
+      # Porodična lozinka za prijavu — OBAVEZNO postavi vrednost u Coolify UI
+      # (Environment Variables). Bez nje server odbija da se pokrene.
+      - AUTH_PASSWORD=${AUTH_PASSWORD}
+      # Coolify automatski generiše i TRAJNO čuva nasumičnu tajnu (64 znaka).
+      # Ne diraj — rotacija ove vrednosti odjavljuje sve korisnike.
+      - SESSION_SECRET=$SERVICE_BASE64_64_SESSIONSECRET
+      - PORT=3001
+      - DATA_DIR=/app/data
+      - CLIENT_DIST=/app/client/dist
+      # NAPOMENA: AUTH_DISABLED se NE postavlja u produkciji — server bi odbio boot.
+    expose:
+      - "3001"
+    volumes:
+      # Trajno stanje: SQLite baza, slike, dnevni bekapi. Preživljava redeploy.
+      - family-tree-data:/app/data
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3001/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  family-tree-data:

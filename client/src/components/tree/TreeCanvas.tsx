@@ -151,10 +151,13 @@ export function TreeCanvas({ tree, focusId, onPersonClick, onPersonActivate }: T
   useEffect(() => {
     const chart = chartRef.current;
     if (!chart || f3Data.length === 0) return;
-    // Fokus očišćen (npr. „Cela porodica" / „Nazad" do dna) → prikaži celu porodicu.
+    // Fokus očišćen (npr. „Cela porodica" / „Nazad" do dna) → vrati pogled kao posle
+    // refresh-a: koren na podrazumevani prvi čvor (family-chart default), pa uklopi celo stablo.
     if (focusId === null) {
       if (lastFocusRef.current !== null) {
         lastFocusRef.current = null;
+        const defaultMainId = f3Data[0]?.id;
+        if (defaultMainId !== undefined) chart.updateMainId(defaultMainId);
         chart.updateTree({ tree_position: 'fit' });
       }
       return;

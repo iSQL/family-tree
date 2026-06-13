@@ -49,6 +49,8 @@ docker compose up -d --build
 
 Aplikacija sluša na `:3001`; ispred postavi HTTPS reverse proxy — primer za Caddy sa automatskim Let's Encrypt sertifikatom je u [deploy/Caddyfile](deploy/Caddyfile). PWA instalacija i sigurni cookie-ji zahtevaju HTTPS.
 
+**Coolify:** za hostovanje na [Coolify](https://coolify.io) instanci (ima ugrađen proxy + HTTPS, pa Caddy nije potreban) koristi [docker-compose.coolify.yml](docker-compose.coolify.yml) i uputstvo [deploy/COOLIFY.md](deploy/COOLIFY.md).
+
 **Podaci i bekap:** sve živi u `./data` (volume): `familytree.db`, `photos/`, `backups/`. Server pravi dnevni bekap baze u `data/backups/` (čuva poslednjih 14). Za bekap je dovoljno kopirati ceo `data/` direktorijum; GEDCOM izvoz služi i kao čitljiv backup.
 
 ## Struktura
