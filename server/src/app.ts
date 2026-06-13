@@ -6,7 +6,7 @@ import type { DB } from './db';
 import type { AppConfig } from './config';
 import type { SessionData } from './middleware/session';
 import { requireAuth } from './middleware/auth';
-import { csrfOriginCheck } from './middleware/csrfOrigin';
+import { createCsrfOriginCheck } from './middleware/csrfOrigin';
 import { createErrorHandler } from './middleware/errors';
 import { createAuthRouter } from './routes/auth';
 import { createTreeRouter } from './routes/tree';
@@ -51,7 +51,7 @@ export function createApp(cfg: AppConfig, db: DB): express.Express {
     next();
   });
 
-  app.use(csrfOriginCheck);
+  app.use(createCsrfOriginCheck(cfg));
 
   app.get('/api/health', (_req, res) => {
     res.json({ ok: true });

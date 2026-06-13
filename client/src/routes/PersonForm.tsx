@@ -17,14 +17,23 @@ function parseIdParam(value: string | null): number | null {
   return Number.isInteger(n) && n > 0 ? n : null;
 }
 
-/** Prvi partner osobe iz union-a (za prefill drugog roditelja). */
+/**
+ * Partner osobe za prefill drugog roditelja deteta. Kod više brakova prednost
+ * ima aktuelni (brak bez zabeleženog kraja) nad bivšim — dete koje dodaješ je
+ * najčešće iz tekućeg braka. Korisnik svakako može da promeni roditelja u formi.
+ */
 function firstPartnerOf(tree: TreeResponse, personId: number): PersonSlim | null {
+  const candidates: { id: number; ended: boolean }[] = [];
   for (const u of tree.unions) {
-    const otherId = u.partner1_id === personId ? u.partner2_id : u.partner2_id === personId ? u.partner1_id : null;
-    if (otherId !== null) {
-      const partner = tree.persons.find((p) => p.id === otherId);
-      if (partner) return partner;
-    }
+    const otherId =
+      u.partner1_id === personId ? u.partner2_id : u.partner2_id === personId ? u.partner1_id : null;
+    if (otherId === null) continue;
+    candidates.push({ id: otherId, ended: u.end_date !== null || u.end_reason !== null });
+  }
+  candidates.sort((a, b) => Number(a.ended) - Number(b.ended)); // aktuelni brak pre bivšeg
+  for (const { id } of candidates) {
+    const partner = tree.persons.find((p) => p.id === id);
+    if (partner) return partner;
   }
   return null;
 }
