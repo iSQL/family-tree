@@ -9,6 +9,8 @@ export interface AppConfig {
   authPassword: string;
   /** Opciona lozinka za pristup samo za pregled (read-only). Prazno = isključeno. */
   readonlyPassword: string;
+  /** Kad je true, GET zahtevi (čitanje) ne traže prijavu; izmene i dalje traže lozinku. */
+  publicRead: boolean;
   sessionSecret: string;
   clientDist: string;
 }
@@ -39,6 +41,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
 
   const authPassword = env.AUTH_PASSWORD ?? '';
   const readonlyPassword = env.READONLY_PASSWORD ?? '';
+  const publicRead = parseBool(env.PUBLIC_READ);
   let sessionSecret = env.SESSION_SECRET ?? '';
 
   if (readonlyPassword !== '' && readonlyPassword === authPassword) {
@@ -68,6 +71,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     authDisabled,
     authPassword,
     readonlyPassword,
+    publicRead,
     sessionSecret,
     clientDist: env.CLIENT_DIST ?? '../client/dist',
   };

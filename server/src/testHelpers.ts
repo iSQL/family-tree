@@ -17,6 +17,7 @@ export function testConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     authDisabled: true,
     authPassword: 'tajna-lozinka',
     readonlyPassword: '',
+    publicRead: false,
     sessionSecret: 'test-secret-'.padEnd(32, 'x'),
     clientDist: '../client/dist',
     ...overrides,

@@ -39,6 +39,7 @@ Vidi [.env.example](.env.example). Ključno:
 
 - `AUTH_PASSWORD` — zajednička porodična lozinka (produkcija)
 - `READONLY_PASSWORD` — *(opciono)* lozinka za pristup **samo za pregled**: ko se prijavi njom može da gleda stablo, ali ne može ništa da menja (dodaje/menja/briše/uvozi). Mora se razlikovati od `AUTH_PASSWORD`; ostavi prazno da bi se isključilo
+- `PUBLIC_READ=true` — *(opciono)* **javno čitanje bez prijave**: bilo ko može da gleda stablo, ali izmene i dalje traže `AUTH_PASSWORD`. Zgodno za privremeno deljenje; podrazumevano isključeno
 - `SESSION_SECRET` — min 32 karaktera, za potpisivanje session cookie-ja
 - `AUTH_DISABLED=true` — isključuje prijavu, **poštuje se samo van produkcije**; u produkciji server odbija da se pokrene sa ovim flagom (fail-safe). Dok je uključen sve je pun pristup, pa se režim samo za pregled aktivira tek kad je prijava uključena
 - `DATA_DIR` — direktorijum sa celokupnim stanjem: SQLite baza, slike, bekapi

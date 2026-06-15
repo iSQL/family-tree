@@ -35,6 +35,7 @@ export const STR = {
 
   readonly: {
     banner: 'Režim samo za pregled — izmene su onemogućene',
+    loginToEdit: 'Prijavi se za izmene',
   },
 
   login: {

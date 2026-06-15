@@ -54,6 +54,7 @@ export function createAuthRouter(cfg: AppConfig): Router {
       authenticated: cfg.authDisabled ? true : req.session.authenticated === true,
       auth_mode: cfg.authDisabled ? 'disabled' : 'password',
       readonly: !cfg.authDisabled && req.session.readonly === true,
+      public_read: !cfg.authDisabled && cfg.publicRead,
     };
     res.json(info);
   });

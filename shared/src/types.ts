@@ -85,6 +85,8 @@ export interface SessionInfo {
   auth_mode: AuthMode;
   /** true kad nalog ima pravo samo na pregled — klijent sakriva sve izmene. */
   readonly: boolean;
+  /** true kad server pušta čitanje bez prijave (PUBLIC_READ) — neprijavljeni gost može da gleda. */
+  public_read: boolean;
 }
 
 /** Standardno telo greške za sve /api/* rute. */

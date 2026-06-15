@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ChevronRight, Download, FileText, LogOut, Monitor, Moon, Sun, type LucideIcon } from 'lucide-react';
+import { ChevronRight, Download, FileText, LogIn, LogOut, Monitor, Moon, Sun, type LucideIcon } from 'lucide-react';
 import { apiFetch } from '../api/client';
 import { useInstallPrompt } from '../hooks/useInstallPrompt';
 import { useOnline } from '../hooks/useOnline';
@@ -102,6 +102,18 @@ export default function SettingsPage() {
           <div className="p-4">
             {session?.auth_mode === 'disabled' ? (
               <p className="text-sm text-stone-500 dark:text-stone-400">{STR.settings.authDisabledNote}</p>
+            ) : !session?.authenticated ? (
+              // Neprijavljeni gost u režimu javnog čitanja
+              <div className="space-y-3">
+                <p className="text-sm text-amber-700 dark:text-amber-400">{STR.settings.readonlyNote}</p>
+                <Link
+                  to="/login"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-amber-700 px-3 py-2 text-sm font-medium text-white hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-500"
+                >
+                  <LogIn size={16} aria-hidden="true" />
+                  {STR.readonly.loginToEdit}
+                </Link>
+              </div>
             ) : (
               <div className="space-y-3">
                 {readonly && (

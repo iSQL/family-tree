@@ -1,10 +1,16 @@
 import { useOnline } from './useOnline';
 import { useSession } from './useSession';
 
-/** true kad je sesija prijavljena read-only lozinkom (samo pregled). */
+/**
+ * true kad korisnik sme samo da gleda: prijavljen read-only lozinkom ILI neprijavljeni
+ * gost dok je uključeno javno čitanje (PUBLIC_READ). Dev režim (auth_mode 'disabled')
+ * je uvek pun pristup.
+ */
 export function useReadonly(): boolean {
   const { data } = useSession();
-  return data?.readonly ?? false;
+  if (!data) return false;
+  if (data.auth_mode === 'disabled') return false;
+  return data.readonly || !data.authenticated;
 }
 
 /**
