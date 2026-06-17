@@ -202,6 +202,7 @@ export const STR = {
     samePerson: 'Izabrana je ista osoba — izaberite dve različite.',
     degreeSuffix: 'koleno',
     pathLabel: 'Putanja srodstva',
+    commonAncestor: 'Zajednički predak',
     error: 'Srodstvo nije moglo da se izračuna.',
     selectFirst: 'Izaberite prvu osobu u stablu.',
     selectSecond: 'Izaberite još jednu osobu.',

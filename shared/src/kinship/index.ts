@@ -27,6 +27,12 @@ export interface KinshipResult {
   path: number[];
   /** Koleno srodstva (broj rodnih koraka na putanji); null za supružničke/tazbinske veze ili bez srodstva. */
   degree: number | null;
+  /**
+   * Indeks „prevojne" osobe u `path` — najbližeg zajedničkog pretka. Do nje se ide
+   * naviše (A → predak), od nje naniže (predak → B). null kad nema putanje. Za čisto
+   * uzlazne/silazne veze poklapa se sa krajem/početkom (B odn. A je sam predak).
+   */
+  apexIndex: number | null;
 }
 
 /** Česta imena sa nepostojanim a ('Petar' → 'Petrov'). */
@@ -102,6 +108,7 @@ const UNRELATED: KinshipResult = {
   description: 'Nisu u krvnom srodstvu.',
   path: [],
   degree: null,
+  apexIndex: null,
 };
 
 /** Glavni API — čist, bez I/O; radi nad TreeResponse kešom na klijentu, testira se na serveru. */
@@ -111,7 +118,7 @@ export function describeKinship(tree: TreeResponse, fromId: number, toId: number
   const b = graph.persons.get(toId);
   if (a === undefined || b === undefined) return UNRELATED;
   if (fromId === toId) {
-    return { related: true, term: null, description: 'Ista osoba.', path: [fromId], degree: 0 };
+    return { related: true, term: null, description: 'Ista osoba.', path: [fromId], degree: 0, apexIndex: 0 };
   }
 
   const kp = findKinPath(graph, fromId, toId);
@@ -119,6 +126,9 @@ export function describeKinship(tree: TreeResponse, fromId: number, toId: number
 
   const hasSpouseEdge = kp.spouseAtA !== null || kp.spouseAtB !== null;
   const degree = hasSpouseEdge ? null : kp.stepsUp + kp.stepsDown;
+  // Prevoj (zajednički predak) je na kraju uzlaznog dela: opciona supružnička ivica
+  // na A strani gura sve za jedno mesto udesno.
+  const apexIndex = (kp.spouseAtA !== null ? 1 : 0) + kp.stepsUp;
   const former = (kp.spouseAtA?.former ?? false) || (kp.spouseAtB?.former ?? false);
   const formerSuffix = former ? ' (bivši)' : '';
 
@@ -134,6 +144,7 @@ export function describeKinship(tree: TreeResponse, fromId: number, toId: number
       description: `${bName} je ${possessive(aName, resolved.gender)} ${resolved.term}${detailPart}${formerSuffix}.`,
       path: kp.path,
       degree,
+      apexIndex,
     };
   }
 
@@ -147,5 +158,6 @@ export function describeKinship(tree: TreeResponse, fromId: number, toId: number
     description: `${bName} je ${chain} osobe ${aName}${formerSuffix}${degreePart}.`,
     path: kp.path,
     degree,
+    apexIndex,
   };
 }

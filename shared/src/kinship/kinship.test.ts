@@ -319,6 +319,16 @@ describe('describeKinship — oblik rezultata', () => {
     expect(describeKinship(tree, MARKO, PETAR).path).toEqual([MARKO, DRAGAN, JOVAN, PETAR]);
   });
 
+  it('apexIndex pokazuje na zajedničkog pretka u putanji', () => {
+    // stric: Marko → Dragan → Jovan(predak) → Petar — prevoj je na JOVAN (indeks 2)
+    expect(describeKinship(tree, MARKO, PETAR).apexIndex).toBe(2);
+    // uzlazna veza (deda): prevoj je na kraju (B je sam predak)
+    const grandpa = describeKinship(tree, MARKO, JOVAN);
+    expect(grandpa.apexIndex).toBe(grandpa.path.length - 1);
+    // silazna veza (unuk): prevoj je na početku (A je sam predak)
+    expect(describeKinship(tree, JOVAN, MARKO).apexIndex).toBe(0);
+  });
+
   it('nepovezane osobe → related:false, prazna putanja', () => {
     const r = describeKinship(tree, MARKO, ZARKO);
     expect(r).toEqual({
@@ -327,6 +337,7 @@ describe('describeKinship — oblik rezultata', () => {
       description: 'Nisu u krvnom srodstvu.',
       path: [],
       degree: null,
+      apexIndex: null,
     });
   });
 

@@ -1,15 +1,28 @@
-import { ArrowRight } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import type { PersonSlim, TreeResponse } from '@shared/types';
 import type { KinshipResult } from '@shared/kinship';
 import { Avatar } from '../person/Avatar';
 import { STR } from '../../lib/strings';
 
-function PathChip({ person, onClick }: { person: PersonSlim; onClick: () => void }) {
+function PathChip({
+  person,
+  onClick,
+  isApex,
+}: {
+  person: PersonSlim;
+  onClick: () => void;
+  isApex: boolean;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex max-w-full cursor-pointer items-center gap-1.5 rounded-full border border-stone-300 bg-white py-1 pr-3 pl-1 text-sm hover:border-amber-600 hover:bg-amber-50 dark:border-stone-600 dark:bg-stone-800 dark:hover:bg-stone-700"
+      title={isApex ? STR.kinship.commonAncestor : undefined}
+      className={`flex max-w-full cursor-pointer items-center gap-1.5 rounded-full border py-1 pr-3 pl-1 text-sm hover:bg-amber-50 dark:hover:bg-stone-700 ${
+        isApex
+          ? 'border-amber-500 bg-amber-50 ring-1 ring-amber-500 dark:bg-stone-700'
+          : 'border-stone-300 bg-white hover:border-amber-600 dark:border-stone-600 dark:bg-stone-800'
+      }`}
     >
       <Avatar person={person} size={24} />
       <span className="truncate">
@@ -32,6 +45,11 @@ export function KinshipResultView({ result, tree, onPathClick }: KinshipResultVi
   const pathPersons = result.path
     .map((id) => byId.get(id))
     .filter((p): p is PersonSlim => p !== undefined);
+  // Prevoj = zajednički predak; do njega strelice naviše (↗), od njega naniže (↘).
+  const apex = result.apexIndex;
+  // „Zajednički predak" ističemo samo kad je stvarni prevoj (V-putanja), a ne kad je
+  // sama osoba A ili B predak (čisto uzlazna/silazna veza).
+  const interiorApex = apex !== null && apex > 0 && apex < pathPersons.length - 1;
 
   return (
     <div className="space-y-4">
@@ -55,12 +73,21 @@ export function KinshipResultView({ result, tree, onPathClick }: KinshipResultVi
             {STR.kinship.pathLabel}
           </h3>
           <div className="flex flex-wrap items-center gap-1.5">
-            {pathPersons.map((p, i) => (
-              <span key={`${p.id}-${i}`} className="flex items-center gap-1.5">
-                {i > 0 && <ArrowRight size={14} aria-hidden="true" className="shrink-0 text-stone-400" />}
-                <PathChip person={p} onClick={() => onPathClick(p.id)} />
-              </span>
-            ))}
+            {pathPersons.map((p, i) => {
+              // Ivica i-1 → i: uzlazna dok ne pređemo prevoj, potom silazna.
+              const ascending = apex === null || i <= apex;
+              return (
+                <span key={`${p.id}-${i}`} className="flex items-center gap-1.5">
+                  {i > 0 &&
+                    (ascending ? (
+                      <ArrowUpRight size={15} aria-hidden="true" className="shrink-0 text-teal-600" />
+                    ) : (
+                      <ArrowDownRight size={15} aria-hidden="true" className="shrink-0 text-rose-500" />
+                    ))}
+                  <PathChip person={p} onClick={() => onPathClick(p.id)} isApex={interiorApex && i === apex} />
+                </span>
+              );
+            })}
           </div>
         </div>
       )}
