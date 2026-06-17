@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { HeartHandshake, Plus, TreeDeciduous } from 'lucide-react';
-import { resolveTreeDepth, DEFAULT_ANCESTRY_DEPTH, DEFAULT_PROGENY_DEPTH } from '@shared/treeView';
+import { resolveProgenyDepth, maxDescendantDepth } from '@shared/treeView';
 import { useTree } from '../hooks/useTree';
 import { useIsDesktop } from '../hooks/useIsDesktop';
 import { useReadonly, useCanWrite } from '../hooks/useAccess';
@@ -30,14 +30,19 @@ export default function TreePage() {
   const focusParam = searchParams.get('focus');
   const focusId = focusParam !== null && Number.isFinite(Number(focusParam)) ? Number(focusParam) : null;
 
-  // Dubina prikaza (broj generacija oko glavne osobe). ?up=/?down= u URL-u; bez njih
-  // se primenjuje adaptivni podrazumevani (malo stablo = sve, veliko = ograničeno).
-  const upParam = searchParams.get('up');
+  // Dubina prikaza POTOMAKA (?down= u URL-u). Preci se uvek prikazuju u celosti.
+  // Bez parametra: malo stablo = svi potomci, veliko = adaptivni podrazumevani.
+  // Glavna osoba = fokus, ili podrazumevani koren (f3 uzima prvu osobu = najmanji id).
+  const mainId = focusId ?? tree?.persons[0]?.id ?? null;
+  const maxProgeny = useMemo(
+    () => (tree && mainId !== null ? maxDescendantDepth(tree.persons, mainId) : 0),
+    [tree, mainId],
+  );
   const downParam = searchParams.get('down');
-  const { ancestry, progeny } = resolveTreeDepth(
+  const progeny = resolveProgenyDepth(
     tree?.persons.length ?? 0,
-    upParam === null ? null : Number(upParam),
     downParam === null ? null : Number(downParam),
+    maxProgeny,
   );
 
   // Spoji izmenu u postojeće URL parametre (null briše ključ) — čuva fokus i dubinu zajedno.
@@ -62,28 +67,13 @@ export default function TreePage() {
     [focusId, mergeParams],
   );
 
-  // Promena dubine za jednu osu (preci/potomci). undefined = „sve" (neograničeno):
-  // „+" sa „sve" je onemogućen u kontrolama; „−" sa „sve" počinje ograničavanje od podrazumevanog.
-  const changeDepth = useCallback(
-    (axis: 'ancestry' | 'progeny', delta: number) => {
-      const cur = axis === 'ancestry' ? ancestry : progeny;
-      const fallback = axis === 'ancestry' ? DEFAULT_ANCESTRY_DEPTH : DEFAULT_PROGENY_DEPTH;
-      const next =
-        delta > 0
-          ? cur === undefined
-            ? undefined
-            : cur + 1
-          : cur === undefined
-            ? fallback
-            : Math.max(0, cur - 1);
-      const up = axis === 'ancestry' ? next : ancestry;
-      const down = axis === 'progeny' ? next : progeny;
-      mergeParams({
-        up: up === undefined ? null : String(up),
-        down: down === undefined ? null : String(down),
-      });
+  // Promena broja generacija potomaka — ograničeno na [0, maxProgeny] (koliko ih čvor ima).
+  const changeProgeny = useCallback(
+    (delta: number) => {
+      const next = Math.max(0, Math.min(maxProgeny, progeny + delta));
+      mergeParams({ down: String(next) });
     },
-    [ancestry, progeny, mergeParams],
+    [progeny, maxProgeny, mergeParams],
   );
 
   // Izbor osobe u modu „Srodstvo": dodaj/ukloni; pri 3. izboru izgura najstariju.
@@ -137,10 +127,10 @@ export default function TreePage() {
     mergeParams({ focus: String(prev) });
   }, [focusHistory, mergeParams]);
 
-  // „Cela porodica" — ukloni fokus I dubinu, prikaži celo neograničeno stablo.
+  // „Cela porodica" — ukloni fokus I ograničenje potomaka.
   const resetFocus = useCallback(() => {
     setFocusHistory([]);
-    mergeParams({ focus: null, up: null, down: null });
+    mergeParams({ focus: null, down: null });
   }, [mergeParams]);
 
   // Prečice sa tastature: „z" dodaj dete, „x" dodaj supružnika — za trenutno
@@ -217,18 +207,17 @@ export default function TreePage() {
         onPersonClick={handlePersonClick}
         onPersonActivate={focusPerson}
         selectedIds={kinshipMode ? kinshipSel : undefined}
-        ancestryDepth={ancestry}
         progenyDepth={progeny}
       />
 
       <TreeControls
         canGoBack={focusHistory.length > 0}
-        isBounded={focusId !== null || ancestry !== undefined || progeny !== undefined}
-        ancestry={ancestry}
+        hasFocus={focusId !== null}
         progeny={progeny}
+        maxProgeny={maxProgeny}
         onBack={goBack}
         onReset={resetFocus}
-        onChangeDepth={changeDepth}
+        onChangeProgeny={changeProgeny}
       />
 
       {/* Prekidač moda „Srodstvo" (gore-desno) */}
