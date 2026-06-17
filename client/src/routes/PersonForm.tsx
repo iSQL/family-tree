@@ -79,6 +79,33 @@ function buildNewDefaults(
   return defaults;
 }
 
+/** Naslov forme za novu osobu — kontekstualan na osnovu srodstva. */
+function newPersonTitle(
+  tree: TreeResponse,
+  childOf: number | null,
+  spouseOf: number | null,
+  parentOf: number | null,
+): string {
+  const named = (id: number): string | null => {
+    const p = tree.persons.find((x) => x.id === id);
+    return p ? `${p.first_name} ${p.last_name}`.trim() : null;
+  };
+
+  if (childOf !== null) {
+    const name = named(childOf);
+    if (name) return `${STR.person.newChildOf} ${name}`;
+  }
+  if (spouseOf !== null) {
+    const name = named(spouseOf);
+    if (name) return `${STR.person.newSpouseOf} ${name}`;
+  }
+  if (parentOf !== null) {
+    const name = named(parentOf);
+    if (name) return `${STR.person.newParentOf} ${name}`;
+  }
+  return STR.person.newTitle;
+}
+
 function detailToFormValues(p: PersonDetail): PersonFormValues {
   return {
     first_name: p.first_name,
@@ -179,7 +206,9 @@ export default function PersonFormPage() {
             <ArrowLeft size={16} aria-hidden="true" />
             {STR.common.back}
           </Button>
-          <h1 className="text-lg font-bold">{isEdit ? STR.person.editTitle : STR.person.newTitle}</h1>
+          <h1 className="text-lg font-bold">
+            {isEdit ? STR.person.editTitle : newPersonTitle(tree, childOf, spouseOf, parentOf)}
+          </h1>
         </div>
         <Card className="p-4 sm:p-6">
           <PersonForm

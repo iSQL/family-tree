@@ -72,6 +72,9 @@ export const STR = {
 
   person: {
     newTitle: 'Nova osoba',
+    newChildOf: 'Novo dete od',
+    newSpouseOf: 'Novi supružnik za',
+    newParentOf: 'Novi roditelj za',
     editTitle: 'Izmena osobe',
     notFound: 'Osoba nije pronađena.',
     firstName: 'Ime',

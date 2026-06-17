@@ -11,7 +11,8 @@
       "Bash(sed -n 505,545p /c/Git/family-tree/node_modules/family-chart/dist/family-chart.esm.js)",
       "Bash(sed -n 1040,1075p /c/Git/family-tree/node_modules/family-chart/dist/family-chart.esm.js)",
       "PowerShell($env:Path = [Environment]::GetEnvironmentVariable\\('Path','Machine'\\) + ';' + [Environment]::GetEnvironmentVariable\\('Path','User'\\); Set-Location C:\\\\Git\\\\family-tree; npx tsc -p client/tsconfig.json --noEmit; \"client tsc exit: $LASTEXITCODE\")",
-      "PowerShell($env:Path = [Environment]::GetEnvironmentVariable\\('Path','Machine'\\) + ';' + [Environment]::GetEnvironmentVariable\\('Path','User'\\); Set-Location C:\\\\Git\\\\family-tree; npx tsc -p client/tsconfig.json --noEmit; \"tsc exit: $LASTEXITCODE\"; Start-Sleep 1; node C:\\\\Users\\\\marem\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\ft-reset-check.mjs)"
+      "PowerShell($env:Path = [Environment]::GetEnvironmentVariable\\('Path','Machine'\\) + ';' + [Environment]::GetEnvironmentVariable\\('Path','User'\\); Set-Location C:\\\\Git\\\\family-tree; npx tsc -p client/tsconfig.json --noEmit; \"tsc exit: $LASTEXITCODE\"; Start-Sleep 1; node C:\\\\Users\\\\marem\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\ft-reset-check.mjs)",
+      "Bash(npx tsc *)"
     ]
   }
 }

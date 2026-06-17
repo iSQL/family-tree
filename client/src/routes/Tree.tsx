@@ -1,9 +1,9 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, TreeDeciduous } from 'lucide-react';
 import { useTree } from '../hooks/useTree';
 import { useIsDesktop } from '../hooks/useIsDesktop';
-import { useReadonly } from '../hooks/useAccess';
+import { useReadonly, useCanWrite } from '../hooks/useAccess';
 import { TreeCanvas } from '../components/tree/TreeCanvas';
 import { TreeControls } from '../components/tree/TreeControls';
 import { PersonDrawer } from '../components/person/PersonDrawer';
@@ -18,6 +18,7 @@ export default function TreePage() {
   const navigate = useNavigate();
   const isDesktop = useIsDesktop();
   const readonly = useReadonly();
+  const canWrite = useCanWrite();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [focusHistory, setFocusHistory] = useState<number[]>([]);
 
@@ -61,6 +62,33 @@ export default function TreePage() {
     setFocusHistory([]);
     setSearchParams({}, { replace: true });
   }, [setSearchParams]);
+
+  // Prečice sa tastature: „z" dodaj dete, „x" dodaj supružnika — za trenutno
+  // izabranu (ili fokusiranu) osobu. Ignoriše unos u poljima, offline i režim pregleda.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.isContentEditable ||
+          ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
+      )
+        return;
+
+      const key = e.key.toLowerCase();
+      if (key !== 'z' && key !== 'x') return;
+
+      const anchorId = selectedId ?? focusId;
+      if (anchorId === null || !canWrite) return;
+
+      e.preventDefault();
+      const relation = key === 'z' ? 'childOf' : 'spouseOf';
+      navigate(`/person/new?${relation}=${anchorId}`);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [selectedId, focusId, canWrite, navigate]);
 
   if (isPending) return <FullScreenSpinner />;
 
