@@ -136,8 +136,14 @@ export function updatePerson(db: DB, id: number, patch: PersonPatch): Person {
   const person = getPerson(db, id);
   if (!person) throw new AppError(404, 'not_found');
 
-  if (patch.father_id !== undefined) assertValidParent(db, patch.father_id, id);
-  if (patch.mother_id !== undefined) assertValidParent(db, patch.mother_id, id);
+  // Ciklus-provera (BFS kroz potomke) je skupa — pokreni je samo kad se roditelj
+  // STVARNO menja. Nepromenjena vrednost je već bila validna, pa preskači.
+  if (patch.father_id !== undefined && patch.father_id !== person.father_id) {
+    assertValidParent(db, patch.father_id, id);
+  }
+  if (patch.mother_id !== undefined && patch.mother_id !== person.mother_id) {
+    assertValidParent(db, patch.mother_id, id);
+  }
 
   // Samo prisutni ključevi — nedostajući se ne diraju.
   const entries = Object.entries(patch).filter(([, v]) => v !== undefined);

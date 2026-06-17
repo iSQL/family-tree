@@ -39,4 +39,29 @@ describe('GET /api/tree', () => {
     const union = res.body.unions[0];
     expect(union).toMatchObject({ partner1_id: a, partner2_id: b, type: 'marriage', start_date: '1975-06-01' });
   });
+
+  it('vraća ETag i odgovara 304 na If-None-Match (uslovni GET štedi protok)', async () => {
+    const { app, db } = testApp();
+    insertPerson(db, { first_name: 'Ana', gender: 'F' });
+
+    const first = await request(app).get('/api/tree');
+    expect(first.status).toBe(200);
+    const etag = first.headers.etag as string | undefined;
+    expect(etag).toBeTruthy();
+
+    const second = await request(app).get('/api/tree').set('If-None-Match', etag ?? '');
+    expect(second.status).toBe(304);
+    expect(second.text).toBe('');
+  });
+
+  it('ETag se menja kad se stablo izmeni', async () => {
+    const { app, db } = testApp();
+    insertPerson(db, { first_name: 'Ana', gender: 'F' });
+    const before = (await request(app).get('/api/tree')).headers.etag;
+
+    insertPerson(db, { first_name: 'Bran', gender: 'M' });
+    const after = (await request(app).get('/api/tree')).headers.etag;
+
+    expect(after).not.toBe(before);
+  });
 });

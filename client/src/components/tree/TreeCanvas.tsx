@@ -50,7 +50,10 @@ function placeholderSvg(gender: F3Datum['data']['gender']): string {
   </svg>`;
 }
 
-function cardInnerHtml(datum: F3Datum, isMain: boolean, isSelected: boolean): string {
+// Kartica je čista funkcija PODATAKA — isticanje izbora (.ft-card-selected) NE ulazi
+// ovde, već ga posebno (de)aktivira efekat ispod prebacivanjem klase u DOM-u. Tako
+// promena izbora nikad ne regeneriše HTML kartica.
+function cardInnerHtml(datum: F3Datum, isMain: boolean): string {
   const p = datum.data;
   const name = esc(`${p.first_name} ${p.last_name}`.trim()) || '?';
   const title = p.title ? ` <span class="ft-card-title">${esc(p.title)}</span>` : '';
@@ -59,7 +62,7 @@ function cardInnerHtml(datum: F3Datum, isMain: boolean, isSelected: boolean): st
     ? `<img class="ft-card-img" src="/api/photos/${encodeURIComponent(p.photo_id)}?size=thumb" alt="" loading="lazy">`
     : placeholderSvg(p.gender);
   const genderClass = p.gender === 'M' ? 'ft-card-m' : p.gender === 'F' ? 'ft-card-f' : 'ft-card-u';
-  const flags = `${isMain ? ' ft-card-main' : ''}${isSelected ? ' ft-card-selected' : ''}`;
+  const flags = isMain ? ' ft-card-main' : '';
   return `<div class="ft-card ${genderClass}${flags}" data-person-id="${esc(datum.id)}">
     ${img}
     <div class="ft-card-text">
@@ -86,9 +89,6 @@ export function TreeCanvas({
   clickRef.current = onPersonClick;
   const activateRef = useRef(onPersonActivate);
   activateRef.current = onPersonActivate;
-  // Set izabranih ID-jeva (string) — čita ga kreator kartica pri (re)renderu.
-  const selectedSetRef = useRef<Set<string>>(new Set());
-  selectedSetRef.current = new Set(selectedIds.map(String));
 
   const f3Data = useMemo(() => toF3(tree), [tree]);
 
@@ -112,7 +112,7 @@ export function TreeCanvas({
     const card = chart.setCardHtml();
     card.setCardInnerHtmlCreator((d) => {
       const datum = d.data as unknown as F3Datum & { main?: boolean };
-      return cardInnerHtml(datum, datum.main === true, selectedSetRef.current.has(datum.id));
+      return cardInnerHtml(datum, datum.main === true);
     });
     card.setOnCardClick((_e: MouseEvent, d: { data: { id: string } }) => {
       const id = Number(d.data.id);
