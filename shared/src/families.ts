@@ -12,8 +12,10 @@ export interface Family {
   representativeId: number;
   /** Root-supružnik predstavnika (drugi osnivač), za „Marko & Ana"; null ako ga nema. */
   coFounderId: number | null;
-  /** Broj članova povezane komponente. */
+  /** Broj članova (komponente za auto, silazne loze za označene). */
   size: number;
+  /** true = ručno označena „loza" (glava + potomci + supružnici), ne auto-komponenta. */
+  designated: boolean;
 }
 
 /** Union-find sa kompresijom putanje i sjedinjavanjem po rangu. */
@@ -92,9 +94,53 @@ export function familyMemberIds(tree: TreeResponse, personId: number): Set<numbe
   return ids;
 }
 
-/** Podskup stabla ograničen na porodicu kojoj pripada `personId` (osobe + njihove unije). */
+/**
+ * Silazna loza glave: glava + SVI potomci (BFS kroz decu) + supružnici svih njih
+ * (da se vide parovi/venčanja). Ne uključuje pretke glave ni rodbinu supružnika.
+ */
+export function descendantFamilyIds(tree: TreeResponse, headId: number): Set<number> {
+  const ids = new Set<number>();
+  const present = new Set(tree.persons.map((p) => p.id));
+  if (!present.has(headId)) return ids;
+
+  const childrenOf = new Map<number, number[]>();
+  for (const p of tree.persons) {
+    for (const pid of [p.father_id, p.mother_id]) {
+      if (pid === null || !present.has(pid)) continue;
+      const list = childrenOf.get(pid);
+      if (list) list.push(p.id);
+      else childrenOf.set(pid, [p.id]);
+    }
+  }
+  // BFS nadole (glava + potomci).
+  const queue = [headId];
+  ids.add(headId);
+  for (let i = 0; i < queue.length; i++) {
+    for (const c of childrenOf.get(queue[i]!) ?? []) {
+      if (!ids.has(c)) {
+        ids.add(c);
+        queue.push(c);
+      }
+    }
+  }
+  // Dodaj supružnike sakupljenih (bez daljeg silaska — njihova deca su već potomci).
+  for (const u of tree.unions) {
+    if (ids.has(u.partner1_id) && present.has(u.partner2_id)) ids.add(u.partner2_id);
+    if (ids.has(u.partner2_id) && present.has(u.partner1_id)) ids.add(u.partner1_id);
+  }
+  return ids;
+}
+
+/**
+ * Podskup stabla ograničen na porodicu osobe `personId`:
+ *  - ako je osoba označena glava (is_family_head) → silazna loza (descendantFamilyIds),
+ *  - inače → cela povezana komponenta (familyMemberIds), kao do sada.
+ */
 export function filterTreeToFamily(tree: TreeResponse, personId: number): TreeResponse {
-  const ids = familyMemberIds(tree, personId);
+  const person = tree.persons.find((p) => p.id === personId);
+  const ids = person?.is_family_head
+    ? descendantFamilyIds(tree, personId)
+    : familyMemberIds(tree, personId);
   return {
     persons: tree.persons.filter((p) => ids.has(p.id)),
     unions: tree.unions.filter((u) => ids.has(u.partner1_id) && ids.has(u.partner2_id)),
@@ -184,7 +230,7 @@ export function computeFamilies(tree: TreeResponse): Family[] {
       }
     }
 
-    families.push({ representativeId, coFounderId, size: memberIds.length });
+    families.push({ representativeId, coFounderId, size: memberIds.length, designated: false });
   }
 
   families.sort((a, b) => {
@@ -195,4 +241,39 @@ export function computeFamilies(tree: TreeResponse): Family[] {
   });
 
   return families;
+}
+
+/**
+ * Porodice za ekran izbora: ručno označene „loze" (glave) PRVE (sa bedžom), pa
+ * automatski prepoznate komponente. Označene glave koje su već auto-predstavnici
+ * komponente se preskaču (bez duplikata). Svaka grupa sortirana po veličini.
+ */
+export function chooserFamilies(tree: TreeResponse): Family[] {
+  const auto = computeFamilies(tree);
+  const autoRepIds = new Set(auto.map((f) => f.representativeId));
+
+  const partnerLowest = new Map<number, number>();
+  for (const u of tree.unions) {
+    for (const [a, b] of [
+      [u.partner1_id, u.partner2_id],
+      [u.partner2_id, u.partner1_id],
+    ] as const) {
+      const cur = partnerLowest.get(a);
+      if (cur === undefined || b < cur) partnerLowest.set(a, b);
+    }
+  }
+
+  const designated: Family[] = [];
+  for (const p of tree.persons) {
+    if (!p.is_family_head || autoRepIds.has(p.id)) continue;
+    designated.push({
+      representativeId: p.id,
+      coFounderId: partnerLowest.get(p.id) ?? null,
+      size: descendantFamilyIds(tree, p.id).size,
+      designated: true,
+    });
+  }
+  designated.sort((a, b) => b.size - a.size || a.representativeId - b.representativeId);
+
+  return [...designated, ...auto];
 }

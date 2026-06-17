@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
-import { Users } from 'lucide-react';
+import { Crown, Users } from 'lucide-react';
 import type { PersonSlim, TreeResponse } from '@shared/types';
-import { computeFamilies } from '@shared/families';
+import { chooserFamilies } from '@shared/families';
 import { Avatar } from '../person/Avatar';
 import { formatLifespan } from '../../lib/dates';
 import { STR } from '../../lib/strings';
@@ -24,7 +24,7 @@ function foundersLine(rep: PersonSlim, co: PersonSlim | null): string {
 
 /** Landing ekran: izbor porodice (povezane celine) za prikaz u stablu. */
 export function FamilyChooser({ tree, onPick }: FamilyChooserProps) {
-  const families = useMemo(() => computeFamilies(tree), [tree]);
+  const families = useMemo(() => chooserFamilies(tree), [tree]);
   const byId = useMemo(() => {
     const m = new Map<number, PersonSlim>();
     for (const p of tree.persons) m.set(p.id, p);
@@ -55,7 +55,15 @@ export function FamilyChooser({ tree, onPick }: FamilyChooserProps) {
                 >
                   <Avatar person={rep} size={56} />
                   <div className="min-w-0 flex-1">
-                    <div className="truncate font-semibold">{familyName(rep)}</div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="truncate font-semibold">{familyName(rep)}</span>
+                      {fam.designated && (
+                        <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                          <Crown size={10} aria-hidden="true" />
+                          {STR.tree.designatedBadge}
+                        </span>
+                      )}
+                    </div>
                     <div className="truncate text-sm text-stone-600 dark:text-stone-300">
                       {foundersLine(rep, co)}
                       {years && ` · ${years}`}

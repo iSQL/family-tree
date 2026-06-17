@@ -19,6 +19,7 @@ function person(p: Partial<Person> & Pick<Person, 'id' | 'first_name'>): Person 
     photo_id: null,
     father_id: null,
     mother_id: null,
+    is_family_head: false,
     birth_place: null,
     notes: null,
     gedcom_xref: null,

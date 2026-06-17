@@ -1,10 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import type { Gender, PersonSlim, TreeResponse, Union } from './types';
-import { computeFamilies, familyMemberIds, filterTreeToFamily } from './families';
+import {
+  chooserFamilies,
+  computeFamilies,
+  descendantFamilyIds,
+  familyMemberIds,
+  filterTreeToFamily,
+} from './families';
 
 function person(
   id: number,
-  opts: { gender?: Gender; birth?: string | null; father?: number | null; mother?: number | null } = {},
+  opts: {
+    gender?: Gender;
+    birth?: string | null;
+    father?: number | null;
+    mother?: number | null;
+    head?: boolean;
+  } = {},
 ): PersonSlim {
   return {
     id,
@@ -18,6 +30,7 @@ function person(
     photo_id: null,
     father_id: opts.father ?? null,
     mother_id: opts.mother ?? null,
+    is_family_head: opts.head ?? false,
   };
 }
 
@@ -41,7 +54,7 @@ describe('computeFamilies', () => {
     );
     const fams = computeFamilies(t);
     expect(fams).toHaveLength(1);
-    expect(fams[0]).toEqual({ representativeId: 1, coFounderId: 2, size: 3 });
+    expect(fams[0]).toEqual({ representativeId: 1, coFounderId: 2, size: 3, designated: false });
   });
 
   it('dve nepovezane komponente → dve porodice, veća prva', () => {
@@ -96,7 +109,7 @@ describe('computeFamilies', () => {
     ]);
     const fams = computeFamilies(t);
     const solo = fams.find((f) => f.representativeId === 9)!;
-    expect(solo).toEqual({ representativeId: 9, coFounderId: null, size: 1 });
+    expect(solo).toEqual({ representativeId: 9, coFounderId: null, size: 1, designated: false });
     expect(fams[fams.length - 1]!.size).toBe(1); // singlton poslednji (sort po veličini)
   });
 
@@ -158,5 +171,63 @@ describe('familyMemberIds / filterTreeToFamily', () => {
     const solo = filterTreeToFamily(t, 9);
     expect(solo.persons.map((p) => p.id)).toEqual([9]);
     expect(solo.unions).toHaveLength(0);
+  });
+});
+
+describe('označene porodice (is_family_head)', () => {
+  // Glavna loza: 1+2 → 3 (tvoja majka) ; majka 3 + muž 4 → 5 (ti).
+  // Deda po majci = 10 (+ baba 11) → 3. Sve je jedna komponenta (10 priženjen preko 3).
+  const build = (headOn: boolean) =>
+    tree(
+      [
+        person(1, { birth: '1900' }), // očev otac (vrh glavne loze)
+        person(2, { birth: '1902' }),
+        person(10, { birth: '1905', head: headOn }), // deda po majci
+        person(11, { birth: '1908' }), // baba po majci
+        person(4, { birth: '1930' }), // tvoj otac (sin 1,2)... ispod
+        person(3, { father: 10, mother: 11, birth: '1932' }), // tvoja majka (ćerka dede 10)
+        person(5, { father: 4, mother: 3, birth: '1960' }), // ti
+      ],
+      [union(1, 2), union(10, 11), union(3, 4)],
+    );
+  // 4 je dete 1,2:
+  const t0 = build(false);
+  t0.persons.find((p) => p.id === 4)!.father_id = 1;
+  t0.persons.find((p) => p.id === 4)!.mother_id = 2;
+
+  it('descendantFamilyIds = glava + potomci + supružnici (ne preci ni rodbina supružnika)', () => {
+    const ids = descendantFamilyIds(t0, 10); // deda po majci
+    // 10 (glava) + 11 (supruga) + 3 (ćerka) + 4 (zet, supružnik ćerke) + 5 (unuk)
+    expect([...ids].sort((a, b) => a - b)).toEqual([3, 4, 5, 10, 11]);
+    // NE uključuje 1 i 2 (očeva loza, preci zeta 4)
+    expect(ids.has(1)).toBe(false);
+    expect(ids.has(2)).toBe(false);
+  });
+
+  it('filterTreeToFamily: označena glava → silazna loza; neoznačena osoba → komponenta', () => {
+    const tHead = build(true);
+    tHead.persons.find((p) => p.id === 4)!.father_id = 1;
+    tHead.persons.find((p) => p.id === 4)!.mother_id = 2;
+
+    const lineage = filterTreeToFamily(tHead, 10); // 10 je označen
+    expect(lineage.persons.map((p) => p.id).sort((a, b) => a - b)).toEqual([3, 4, 5, 10, 11]);
+
+    const whole = filterTreeToFamily(tHead, 1); // 1 nije označen → cela komponenta
+    expect(whole.persons.length).toBe(7);
+  });
+
+  it('chooserFamilis: označena glava se pojavljuje kao zasebna „loza" kartica, prva', () => {
+    const tHead = build(true);
+    tHead.persons.find((p) => p.id === 4)!.father_id = 1;
+    tHead.persons.find((p) => p.id === 4)!.mother_id = 2;
+
+    const fams = chooserFamilies(tHead);
+    expect(fams[0]).toEqual({ representativeId: 10, coFounderId: 11, size: 5, designated: true });
+    // Plus auto kartica cele komponente.
+    expect(fams.some((f) => !f.designated && f.size === 7)).toBe(true);
+  });
+
+  it('chooserFamilies bez označenih = computeFamilies', () => {
+    expect(chooserFamilies(t0)).toEqual(computeFamilies(t0));
   });
 });

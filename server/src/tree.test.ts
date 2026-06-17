@@ -31,10 +31,11 @@ describe('GET /api/tree', () => {
     expect(Object.keys(slim).sort()).toEqual(
       [
         'id', 'first_name', 'last_name', 'maiden_name', 'gender', 'title',
-        'birth_date', 'death_date', 'photo_id', 'father_id', 'mother_id',
+        'birth_date', 'death_date', 'photo_id', 'father_id', 'mother_id', 'is_family_head',
       ].sort(),
     );
     expect(slim).not.toHaveProperty('notes');
+    expect(slim.is_family_head).toBe(false); // 0/1 u bazi → boolean u DTO
 
     const union = res.body.unions[0];
     expect(union).toMatchObject({ partner1_id: a, partner2_id: b, type: 'marriage', start_date: '1975-06-01' });
@@ -63,5 +64,17 @@ describe('GET /api/tree', () => {
     const after = (await request(app).get('/api/tree')).headers.etag;
 
     expect(after).not.toBe(before);
+  });
+
+  it('PATCH is_family_head → tree vraća boolean true (koercija 0/1 ↔ boolean)', async () => {
+    const { app, db } = testApp();
+    const id = insertPerson(db, { first_name: 'Đorđe', gender: 'M' });
+
+    const patched = await request(app).patch(`/api/persons/${id}`).send({ is_family_head: true });
+    expect(patched.status).toBe(200);
+    expect(patched.body.is_family_head).toBe(true);
+
+    const res = await request(app).get('/api/tree');
+    expect(res.body.persons.find((p: { id: number }) => p.id === id).is_family_head).toBe(true);
   });
 });

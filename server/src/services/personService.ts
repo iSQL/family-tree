@@ -13,8 +13,14 @@ import type { PersonInput, PersonPatch } from '@shared/schemas';
 import { AppError } from '../middleware/errors';
 
 const SLIM_COLS =
-  'id, first_name, last_name, maiden_name, gender, title, birth_date, death_date, photo_id, father_id, mother_id';
+  'id, first_name, last_name, maiden_name, gender, title, birth_date, death_date, photo_id, father_id, mother_id, is_family_head';
 const UNION_COLS = 'id, partner1_id, partner2_id, type, start_date, end_date, end_reason, notes';
+
+/** SQLite čuva is_family_head kao 0/1 → DTO ga izlaže kao boolean. */
+function withFamilyHeadBool<T extends PersonSlim>(row: T): T {
+  row.is_family_head = Boolean(row.is_family_head);
+  return row;
+}
 
 /** Poređenje parcijalnih ISO datuma — leksikografski; NULL na kraju. */
 function compareDates(a: string | null, b: string | null): number {
@@ -27,20 +33,22 @@ function compareDates(a: string | null, b: string | null): number {
 const byBirth = (a: PersonSlim, b: PersonSlim) => compareDates(a.birth_date, b.birth_date) || a.id - b.id;
 
 export function getTree(db: DB): TreeResponse {
-  const persons = db.prepare(`SELECT ${SLIM_COLS} FROM persons ORDER BY id`).all() as PersonSlim[];
+  const persons = (db.prepare(`SELECT ${SLIM_COLS} FROM persons ORDER BY id`).all() as PersonSlim[]).map(
+    withFamilyHeadBool,
+  );
   const unions = db.prepare(`SELECT ${UNION_COLS} FROM unions ORDER BY id`).all() as Union[];
   return { persons, unions };
 }
 
 export function getPerson(db: DB, id: number): Person | null {
   const row = db.prepare('SELECT * FROM persons WHERE id = ?').get(id) as Person | undefined;
-  return row ?? null;
+  return row ? withFamilyHeadBool(row) : null;
 }
 
 function getSlim(db: DB, id: number | null): PersonSlim | null {
   if (id === null) return null;
   const row = db.prepare(`SELECT ${SLIM_COLS} FROM persons WHERE id = ?`).get(id) as PersonSlim | undefined;
-  return row ?? null;
+  return row ? withFamilyHeadBool(row) : null;
 }
 
 export function getPersonDetail(db: DB, id: number): PersonDetail | null {
@@ -150,8 +158,10 @@ export function updatePerson(db: DB, id: number, patch: PersonPatch): Person {
   if (entries.length === 0) return person;
 
   const setSql = entries.map(([k]) => `${k} = @${k}`).join(', ');
+  // better-sqlite3 vezuje 0/1, ne boolean — koercija pre run-a.
+  const bind = Object.fromEntries(entries.map(([k, v]) => [k, typeof v === 'boolean' ? (v ? 1 : 0) : v]));
   db.prepare(`UPDATE persons SET ${setSql}, updated_at = datetime('now') WHERE id = @__id`).run({
-    ...Object.fromEntries(entries),
+    ...bind,
     __id: id,
   });
   return getPerson(db, id)!;

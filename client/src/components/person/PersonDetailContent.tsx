@@ -1,8 +1,8 @@
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, Pencil, TreeDeciduous, Trash2, UserPlus } from 'lucide-react';
+import { Crown, Heart, Pencil, TreeDeciduous, Trash2, UserPlus } from 'lucide-react';
 import type { PersonDetail, PersonSlim, UnionWithPartner } from '@shared/types';
-import { useDeletePerson, useDeleteUnion } from '../../hooks/useMutations';
+import { useDeletePerson, useDeleteUnion, useUpdatePerson } from '../../hooks/useMutations';
 import { useOnline } from '../../hooks/useOnline';
 import { useReadonly } from '../../hooks/useAccess';
 import { formatLifespan, formatPartialDate } from '../../lib/dates';
@@ -80,6 +80,7 @@ export function PersonDetailContent({ person, onPersonClick, onShowInTree, onDel
   const readonly = useReadonly();
   const deletePerson = useDeletePerson();
   const deleteUnion = useDeleteUnion();
+  const updatePerson = useUpdatePerson();
 
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [editUnion, setEditUnion] = useState<UnionWithPartner | null>(null);
@@ -158,6 +159,18 @@ export function PersonDetailContent({ person, onPersonClick, onShowInTree, onDel
                 {STR.person.addParent}
               </Button>
             )}
+            <Button
+              size="sm"
+              variant={person.is_family_head ? 'primary' : 'secondary'}
+              onClick={() =>
+                updatePerson.mutate({ id: person.id, patch: { is_family_head: !person.is_family_head } })
+              }
+              disabled={!online || updatePerson.isPending}
+              title={offlineTitle}
+            >
+              <Crown size={14} aria-hidden="true" />
+              {person.is_family_head ? STR.tree.unsetFamilyHead : STR.tree.setFamilyHead}
+            </Button>
             <Button
               size="sm"
               variant="danger"

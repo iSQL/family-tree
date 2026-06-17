@@ -75,6 +75,7 @@ function person(
     photo_id: null,
     father_id,
     mother_id,
+    is_family_head: false,
   };
 }
 

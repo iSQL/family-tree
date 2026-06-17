@@ -50,6 +50,11 @@ CREATE INDEX idx_unions_p1 ON unions(partner1_id);
 CREATE INDEX idx_unions_p2 ON unions(partner2_id);
 `,
   },
+  {
+    version: 2,
+    // Ručno označena glava porodice (silazna loza) — interno svojstvo, van GEDCOM-a.
+    sql: `ALTER TABLE persons ADD COLUMN is_family_head INTEGER NOT NULL DEFAULT 0;`,
+  },
 ];
 
 export function runMigrations(db: DB): void {

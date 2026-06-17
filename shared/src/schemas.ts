@@ -51,7 +51,10 @@ const personObject = z.object({
 /** POST /api/persons */
 export const personInputSchema = personObject;
 /** PATCH /api/persons/:id — nedostajući ključevi se NE diraju; eksplicitni null/'' briše vrednost. */
-export const personPatchSchema = personObject.partial();
+export const personPatchSchema = personObject.partial().extend({
+  // Označavanje glave porodice — samo kroz PATCH (kreiranje uvek kreće sa false).
+  is_family_head: z.boolean().optional(),
+});
 
 const unionObject = z.object({
   partner1_id: z.number().int().positive(),

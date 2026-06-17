@@ -30,6 +30,7 @@ function toSlim(p: Person): PersonSlim {
     photo_id: p.photo_id,
     father_id: p.father_id,
     mother_id: p.mother_id,
+    is_family_head: p.is_family_head,
   };
 }
 

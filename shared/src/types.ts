@@ -22,6 +22,8 @@ export interface PersonSlim {
   photo_id: string | null;
   father_id: number | null;
   mother_id: number | null;
+  /** Ručno označena glava porodice — prikazuje se kao zasebna „loza" (silazna). */
+  is_family_head: boolean;
 }
 
 /** Pun red iz baze (GET /api/persons/:id, GEDCOM export). */
