@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, TreeDeciduous } from 'lucide-react';
+import { HeartHandshake, Plus, TreeDeciduous } from 'lucide-react';
 import { useTree } from '../hooks/useTree';
 import { useIsDesktop } from '../hooks/useIsDesktop';
 import { useReadonly, useCanWrite } from '../hooks/useAccess';
 import { TreeCanvas } from '../components/tree/TreeCanvas';
 import { TreeControls } from '../components/tree/TreeControls';
+import { KinshipPanel } from '../components/tree/KinshipPanel';
 import { PersonDrawer } from '../components/person/PersonDrawer';
 import { PersonSheet } from '../components/person/PersonSheet';
 import { Button } from '../components/ui/Button';
@@ -21,6 +22,9 @@ export default function TreePage() {
   const canWrite = useCanWrite();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [focusHistory, setFocusHistory] = useState<number[]>([]);
+  // Mod „Srodstvo": izbor do dve osobe u stablu za prikaz njihovog srodstva.
+  const [kinshipMode, setKinshipMode] = useState(false);
+  const [kinshipSel, setKinshipSel] = useState<number[]>([]);
 
   const focusParam = searchParams.get('focus');
   const focusId = focusParam !== null && Number.isFinite(Number(focusParam)) ? Number(focusParam) : null;
@@ -34,8 +38,35 @@ export default function TreePage() {
     [focusId, setSearchParams],
   );
 
-  // Jednostruki klik na čvor — otvori detalje (drawer/sheet).
-  const handlePersonClick = useCallback((id: number) => setSelectedId(id), []);
+  // Izbor osobe u modu „Srodstvo": dodaj/ukloni; pri 3. izboru izgura najstariju.
+  const toggleKinshipSelect = useCallback((id: number) => {
+    setKinshipSel((sel) => {
+      if (sel.includes(id)) return sel.filter((x) => x !== id);
+      if (sel.length < 2) return [...sel, id];
+      return [sel[1]!, id];
+    });
+  }, []);
+
+  // Jednostruki klik na čvor — u modu „Srodstvo" bira osobu, inače otvara detalje.
+  const handlePersonClick = useCallback(
+    (id: number) => {
+      if (kinshipMode) toggleKinshipSelect(id);
+      else setSelectedId(id);
+    },
+    [kinshipMode, toggleKinshipSelect],
+  );
+
+  // Uđi/izađi iz moda „Srodstvo" — pri ulasku zatvori detalje, pri izlasku očisti izbor.
+  const toggleKinshipMode = useCallback(() => {
+    setKinshipMode((on) => {
+      if (on) {
+        setKinshipSel([]);
+        return false;
+      }
+      setSelectedId(null);
+      return true;
+    });
+  }, []);
 
   // Klik na srodnika u panelu — re-root + zadrži panel na njemu.
   const handleRelativeClick = useCallback(
@@ -76,8 +107,16 @@ export default function TreePage() {
       )
         return;
 
+      // Escape zatvara mod „Srodstvo".
+      if (e.key === 'Escape' && kinshipMode) {
+        e.preventDefault();
+        toggleKinshipMode();
+        return;
+      }
+
       const key = e.key.toLowerCase();
       if (key !== 'z' && key !== 'x') return;
+      if (kinshipMode) return;
 
       const anchorId = selectedId ?? focusId;
       if (anchorId === null || !canWrite) return;
@@ -88,7 +127,7 @@ export default function TreePage() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [selectedId, focusId, canWrite, navigate]);
+  }, [selectedId, focusId, canWrite, navigate, kinshipMode, toggleKinshipMode]);
 
   if (isPending) return <FullScreenSpinner />;
 
@@ -128,6 +167,7 @@ export default function TreePage() {
         focusId={focusId}
         onPersonClick={handlePersonClick}
         onPersonActivate={focusPerson}
+        selectedIds={kinshipMode ? kinshipSel : undefined}
       />
 
       <TreeControls
@@ -137,8 +177,33 @@ export default function TreePage() {
         onReset={resetFocus}
       />
 
-      {/* Plutajuće dugme za dodavanje — sakriveno dok je sheet otvoren ili u režimu pregleda */}
-      {!sheetOpen && !readonly && (
+      {/* Prekidač moda „Srodstvo" (gore-desno) */}
+      <Button
+        variant={kinshipMode ? 'primary' : 'secondary'}
+        size="sm"
+        className="absolute top-3 right-3 z-20 shadow-lg"
+        onClick={toggleKinshipMode}
+        aria-pressed={kinshipMode}
+      >
+        <HeartHandshake size={16} aria-hidden="true" />
+        <span className="hidden sm:inline">
+          {kinshipMode ? STR.tree.kinshipModeOn : STR.tree.kinshipMode}
+        </span>
+      </Button>
+
+      {kinshipMode && (
+        <KinshipPanel
+          tree={tree}
+          selectedIds={kinshipSel}
+          onRemove={toggleKinshipSelect}
+          onSwap={() => setKinshipSel((sel) => (sel.length === 2 ? [sel[1]!, sel[0]!] : sel))}
+          onClear={() => setKinshipSel([])}
+          onExit={toggleKinshipMode}
+        />
+      )}
+
+      {/* Plutajuće dugme za dodavanje — sakriveno dok je sheet otvoren, u modu „Srodstvo" ili u režimu pregleda */}
+      {!sheetOpen && !readonly && !kinshipMode && (
         <Button
           onClick={() => navigate('/person/new')}
           className="absolute bottom-4 left-4 z-10 rounded-full shadow-lg sm:rounded-lg"

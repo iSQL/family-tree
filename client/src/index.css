@@ -94,6 +94,13 @@
   outline-offset: 1px;
 }
 
+/* Izbor za kalkulator srodstva (mod „Srodstvo") — pobeđuje nad .ft-card-main */
+.ft-card-selected {
+  outline: 3px solid #0d9488; /* teal-600 */
+  outline-offset: 1px;
+  box-shadow: 0 0 0 5px rgb(13 148 136 / 0.2);
+}
+
 .ft-card-img,
 .ft-card-ph {
   width: 44px;

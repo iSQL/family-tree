@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeftRight, ArrowRight } from 'lucide-react';
-import type { PersonSlim, TreeResponse } from '@shared/types';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowLeftRight } from 'lucide-react';
+import type { TreeResponse } from '@shared/types';
 import { describeKinship, type KinshipResult } from '@shared/kinship';
 import { useTree } from '../hooks/useTree';
-import { Avatar } from '../components/person/Avatar';
 import { RelativePicker } from '../components/person/RelativePicker';
+import { KinshipResultView } from '../components/kinship/KinshipResultView';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Field } from '../components/ui/Input';
@@ -20,26 +20,18 @@ function safeKinship(tree: TreeResponse, fromId: number, toId: number): KinshipR
   }
 }
 
-function PathChip({ person, onClick }: { person: PersonSlim; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex max-w-full cursor-pointer items-center gap-1.5 rounded-full border border-stone-300 bg-white py-1 pr-3 pl-1 text-sm hover:border-amber-600 hover:bg-amber-50 dark:border-stone-600 dark:bg-stone-800 dark:hover:bg-stone-700"
-    >
-      <Avatar person={person} size={24} />
-      <span className="truncate">
-        {person.first_name} {person.last_name}
-      </span>
-    </button>
-  );
+function parseIdParam(value: string | null): number | null {
+  if (value === null) return null;
+  const n = Number(value);
+  return Number.isInteger(n) && n > 0 ? n : null;
 }
 
 export default function CalculatorPage() {
   const { data: tree, isPending, isError, refetch } = useTree();
   const navigate = useNavigate();
-  const [aId, setAId] = useState<number | null>(null);
-  const [bId, setBId] = useState<number | null>(null);
+  const [searchParams] = useSearchParams();
+  const [aId, setAId] = useState<number | null>(() => parseIdParam(searchParams.get('a')));
+  const [bId, setBId] = useState<number | null>(() => parseIdParam(searchParams.get('b')));
 
   const result = useMemo(() => {
     if (!tree || aId === null || bId === null || aId === bId) return null;
@@ -56,12 +48,6 @@ export default function CalculatorPage() {
       </div>
     );
   }
-
-  const byId = new Map(tree.persons.map((p) => [p.id, p]));
-  const pathPersons =
-    result !== null && result !== 'error'
-      ? result.path.map((id) => byId.get(id)).filter((p): p is PersonSlim => p !== undefined)
-      : [];
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -108,38 +94,8 @@ export default function CalculatorPage() {
         ) : result === 'error' ? (
           <p className="px-1 text-sm text-red-600 dark:text-red-400">{STR.kinship.error}</p>
         ) : (
-          <Card className="space-y-4 p-5">
-            <div className="flex flex-wrap items-center gap-2">
-              {result.term !== null && (
-                <span className="rounded-full bg-amber-600 px-3 py-1 text-sm font-semibold text-white">
-                  {result.term}
-                </span>
-              )}
-              {result.degree !== null && (
-                <span className="rounded-full bg-stone-200 px-3 py-1 text-xs font-medium text-stone-700 dark:bg-stone-700 dark:text-stone-200">
-                  {result.degree}. {STR.kinship.degreeSuffix}
-                </span>
-              )}
-            </div>
-            <p className="text-lg font-medium">{result.description}</p>
-
-            {pathPersons.length > 1 && (
-              <div>
-                <h3 className="mb-1.5 text-xs font-semibold tracking-wide text-stone-500 uppercase dark:text-stone-400">
-                  {STR.kinship.pathLabel}
-                </h3>
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {pathPersons.map((p, i) => (
-                    <span key={`${p.id}-${i}`} className="flex items-center gap-1.5">
-                      {i > 0 && (
-                        <ArrowRight size={14} aria-hidden="true" className="shrink-0 text-stone-400" />
-                      )}
-                      <PathChip person={p} onClick={() => navigate(`/?focus=${p.id}`)} />
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
+          <Card className="p-5">
+            <KinshipResultView result={result} tree={tree} onPathClick={(id) => navigate(`/?focus=${id}`)} />
           </Card>
         )}
       </div>

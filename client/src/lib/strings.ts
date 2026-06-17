@@ -63,6 +63,8 @@ export const STR = {
     wholeFamily: 'Cela porodica',
     back: 'Prethodni pregled',
     loadFailed: 'Stablo nije moglo da se učita.',
+    kinshipMode: 'Srodstvo',
+    kinshipModeOn: 'Srodstvo: izaberi dve osobe',
   },
 
   search: {
@@ -201,6 +203,10 @@ export const STR = {
     degreeSuffix: 'koleno',
     pathLabel: 'Putanja srodstva',
     error: 'Srodstvo nije moglo da se izračuna.',
+    selectFirst: 'Izaberite prvu osobu u stablu.',
+    selectSecond: 'Izaberite još jednu osobu.',
+    openCalculator: 'Otvori kalkulator',
+    clear: 'Očisti',
   },
 
   gedcom: {

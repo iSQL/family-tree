@@ -1,0 +1,129 @@
+import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeftRight, Calculator, X } from 'lucide-react';
+import type { TreeResponse } from '@shared/types';
+import { describeKinship, type KinshipResult } from '@shared/kinship';
+import { Avatar } from '../person/Avatar';
+import { KinshipResultView } from '../kinship/KinshipResultView';
+import { Button } from '../ui/Button';
+import { STR } from '../../lib/strings';
+
+function safeKinship(tree: TreeResponse, fromId: number, toId: number): KinshipResult | 'error' {
+  try {
+    return describeKinship(tree, fromId, toId);
+  } catch {
+    return 'error';
+  }
+}
+
+export interface KinshipPanelProps {
+  tree: TreeResponse;
+  /** Trenutno izabrane osobe (0–2). */
+  selectedIds: number[];
+  /** Ukloni jednu osobu iz izbora. */
+  onRemove: (id: number) => void;
+  /** Zameni levu i desnu izabranu osobu. */
+  onSwap: () => void;
+  /** Očisti ceo izbor. */
+  onClear: () => void;
+  /** Zatvori mod „Srodstvo". */
+  onExit: () => void;
+}
+
+/** Plutajući panel (dno) za kalkulator srodstva pokrenut izborom čvorova u stablu. */
+export function KinshipPanel({ tree, selectedIds, onRemove, onSwap, onClear, onExit }: KinshipPanelProps) {
+  const navigate = useNavigate();
+  const byId = useMemo(() => new Map(tree.persons.map((p) => [p.id, p])), [tree]);
+
+  const [aId, bId] = selectedIds;
+  const result = useMemo(() => {
+    if (aId === undefined || bId === undefined || aId === bId) return null;
+    return safeKinship(tree, aId, bId);
+  }, [tree, aId, bId]);
+
+  return (
+    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center p-3">
+      <div className="pointer-events-auto flex max-h-[60vh] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-stone-200 bg-white shadow-2xl dark:border-stone-700 dark:bg-stone-800">
+        {/* Zaglavlje */}
+        <div className="flex items-center justify-between border-b border-stone-200 px-4 py-2.5 dark:border-stone-700">
+          <h2 className="text-sm font-semibold">{STR.kinship.title}</h2>
+          <button
+            type="button"
+            aria-label={STR.common.close}
+            onClick={onExit}
+            className="cursor-pointer rounded-md p-1.5 text-stone-400 hover:bg-stone-200/70 hover:text-stone-700 dark:hover:bg-stone-700 dark:hover:text-stone-200"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="space-y-3 overflow-y-auto p-4">
+          {/* Izabrane osobe */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {selectedIds.map((id, i) => {
+              const p = byId.get(id);
+              if (!p) return null;
+              return (
+                <span key={id} className="flex items-center gap-1.5">
+                  {i > 0 && (
+                    <button
+                      type="button"
+                      aria-label={STR.kinship.swap}
+                      title={STR.kinship.swap}
+                      onClick={onSwap}
+                      className="cursor-pointer rounded-full p-1.5 text-stone-400 hover:bg-stone-200/70 hover:text-stone-700 dark:hover:bg-stone-700 dark:hover:text-stone-200"
+                    >
+                      <ArrowLeftRight size={16} />
+                    </button>
+                  )}
+                  <span className="flex items-center gap-1.5 rounded-full bg-teal-600/10 py-1 pr-1 pl-1 text-sm text-teal-800 ring-1 ring-teal-600/40 dark:text-teal-200">
+                    <Avatar person={p} size={24} />
+                    <span className="truncate pl-0.5">
+                      {p.first_name} {p.last_name}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label={STR.common.delete}
+                      onClick={() => onRemove(id)}
+                      className="cursor-pointer rounded-full p-1 hover:bg-teal-600/20"
+                    >
+                      <X size={14} />
+                    </button>
+                  </span>
+                </span>
+              );
+            })}
+          </div>
+
+          {/* Stanje / rezultat */}
+          {selectedIds.length === 0 ? (
+            <p className="text-sm text-stone-500 dark:text-stone-400">{STR.kinship.selectFirst}</p>
+          ) : selectedIds.length === 1 ? (
+            <p className="text-sm text-stone-500 dark:text-stone-400">{STR.kinship.selectSecond}</p>
+          ) : aId === bId ? (
+            <p className="text-sm text-stone-500 dark:text-stone-400">{STR.kinship.samePerson}</p>
+          ) : result === 'error' || result === null ? (
+            <p className="text-sm text-red-600 dark:text-red-400">{STR.kinship.error}</p>
+          ) : (
+            <KinshipResultView result={result} tree={tree} onPathClick={(id) => navigate(`/?focus=${id}`)} />
+          )}
+
+          {/* Akcije */}
+          <div className="flex flex-wrap gap-2 pt-1">
+            {result !== null && result !== 'error' && aId !== bId && (
+              <Button size="sm" variant="secondary" onClick={() => navigate(`/calculator?a=${aId}&b=${bId}`)}>
+                <Calculator size={14} aria-hidden="true" />
+                {STR.kinship.openCalculator}
+              </Button>
+            )}
+            {selectedIds.length > 0 && (
+              <Button size="sm" variant="ghost" onClick={onClear}>
+                {STR.kinship.clear}
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
