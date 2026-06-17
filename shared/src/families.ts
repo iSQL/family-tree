@@ -113,6 +113,33 @@ export function computeFamilies(tree: TreeResponse): Family[] {
     else members.set(root, [p.id]);
   }
 
+  // Dubina potomaka (najduža silazna grana) po osobi — memoizovano, DAG-bezbedno.
+  // Najstariji predak ima najdublju lozu; pridošli supružnik na dubokom nivou plitku.
+  const childrenOf = new Map<number, number[]>();
+  for (const p of tree.persons) {
+    for (const pid of [p.father_id, p.mother_id]) {
+      if (pid === null || !byId.has(pid)) continue;
+      const list = childrenOf.get(pid);
+      if (list) list.push(p.id);
+      else childrenOf.set(pid, [p.id]);
+    }
+  }
+  const depthMemo = new Map<number, number>();
+  const visiting = new Set<number>();
+  const descendantDepth = (id: number): number => {
+    const cached = depthMemo.get(id);
+    if (cached !== undefined) return cached;
+    visiting.add(id);
+    let d = 0;
+    for (const c of childrenOf.get(id) ?? []) {
+      if (visiting.has(c)) continue;
+      d = Math.max(d, 1 + descendantDepth(c));
+    }
+    visiting.delete(id);
+    depthMemo.set(id, d);
+    return d;
+  };
+
   // „Root" = osoba bez prisutnog roditelja (null ili viseća referenca).
   const isRoot = (id: number): boolean => {
     const p = byId.get(id)!;
@@ -132,10 +159,14 @@ export function computeFamilies(tree: TreeResponse): Family[] {
   const families: Family[] = [];
   for (const memberIds of members.values()) {
     const roots = memberIds.filter(isRoot);
-    // Predstavnik: najstariji root (komparator stavlja nepoznate datume poslednje),
-    // pri izjednačenju najmanji id. Ako (teoretski) nema root-a, uzmi najmanji id.
+    // Predstavnik = root sa NAJDUBLJOM lozom potomaka (najviši/najstariji nivo).
+    // Datum rođenja je tek sekundarni kriterijum (stariji prvi; nepoznati poslednji),
+    // pa najmanji id. Time pridošli supružnik na dubokom nivou ne preuzme porodicu.
     const candidates = roots.length > 0 ? roots : memberIds;
     const representativeId = candidates.reduce((best, id) => {
+      const dd = descendantDepth(id) - descendantDepth(best);
+      if (dd > 0) return id;
+      if (dd < 0) return best;
       const cmp = comparePartialDates(byId.get(id)!.birth_date, byId.get(best)!.birth_date);
       if (cmp < 0) return id;
       if (cmp > 0) return best;

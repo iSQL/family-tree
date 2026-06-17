@@ -110,6 +110,24 @@ describe('computeFamilies', () => {
     const fams = computeFamilies(t);
     expect(fams.map((f) => f.representativeId)).toEqual([10, 1]); // obe veličine 2; 1850 pre 1900
   });
+
+  it('predstavnik je najviši predak i kad osnivač nema datum a dublji root ima', () => {
+    // Loza: 1(bez datuma) → 2 → 3 → 4. Na 3. nivou se „doženio" supružnik 8 (root, ima datum).
+    // Stari bag: 8 (poznat datum) bi pobedio 1 (null = poslednji). Sada pobeđuje najdublja loza.
+    const t = tree(
+      [
+        person(1, { birth: null }), // osnivač, 1. nivo, nepoznat datum
+        person(2, { father: 1, birth: '1900' }), // 2. nivo
+        person(3, { father: 2, birth: '1925' }), // 3. nivo
+        person(8, { birth: '1928' }), // pridošli supružnik — root sa poznatim datumom
+        person(4, { father: 3, mother: 8, birth: '1950' }), // 4. nivo
+      ],
+      [union(3, 8)],
+    );
+    const fams = computeFamilies(t);
+    expect(fams).toHaveLength(1);
+    expect(fams[0]!.representativeId).toBe(1); // najdublja loza, ne supružnik sa 3. nivoa
+  });
 });
 
 describe('familyMemberIds / filterTreeToFamily', () => {
