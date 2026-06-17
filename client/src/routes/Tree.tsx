@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { HeartHandshake, Plus, TreeDeciduous } from 'lucide-react';
+import { resolveTreeDepth, DEFAULT_ANCESTRY_DEPTH, DEFAULT_PROGENY_DEPTH } from '@shared/treeView';
 import { useTree } from '../hooks/useTree';
 import { useIsDesktop } from '../hooks/useIsDesktop';
 import { useReadonly, useCanWrite } from '../hooks/useAccess';
@@ -29,13 +30,60 @@ export default function TreePage() {
   const focusParam = searchParams.get('focus');
   const focusId = focusParam !== null && Number.isFinite(Number(focusParam)) ? Number(focusParam) : null;
 
+  // Dubina prikaza (broj generacija oko glavne osobe). ?up=/?down= u URL-u; bez njih
+  // se primenjuje adaptivni podrazumevani (malo stablo = sve, veliko = ograničeno).
+  const upParam = searchParams.get('up');
+  const downParam = searchParams.get('down');
+  const { ancestry, progeny } = resolveTreeDepth(
+    tree?.persons.length ?? 0,
+    upParam === null ? null : Number(upParam),
+    downParam === null ? null : Number(downParam),
+  );
+
+  // Spoji izmenu u postojeće URL parametre (null briše ključ) — čuva fokus i dubinu zajedno.
+  const mergeParams = useCallback(
+    (patch: Record<string, string | null>) => {
+      const next = new URLSearchParams(searchParams);
+      for (const [k, v] of Object.entries(patch)) {
+        if (v === null) next.delete(k);
+        else next.set(k, v);
+      }
+      setSearchParams(next, { replace: true });
+    },
+    [searchParams, setSearchParams],
+  );
+
   // Re-root stabla na osobu (dupli klik, „Prikaži stablo odavde", klik na srodnika).
   const focusPerson = useCallback(
     (id: number) => {
       if (focusId !== null && focusId !== id) setFocusHistory((h) => [...h, focusId]);
-      setSearchParams({ focus: String(id) }, { replace: true });
+      mergeParams({ focus: String(id) });
     },
-    [focusId, setSearchParams],
+    [focusId, mergeParams],
+  );
+
+  // Promena dubine za jednu osu (preci/potomci). undefined = „sve" (neograničeno):
+  // „+" sa „sve" je onemogućen u kontrolama; „−" sa „sve" počinje ograničavanje od podrazumevanog.
+  const changeDepth = useCallback(
+    (axis: 'ancestry' | 'progeny', delta: number) => {
+      const cur = axis === 'ancestry' ? ancestry : progeny;
+      const fallback = axis === 'ancestry' ? DEFAULT_ANCESTRY_DEPTH : DEFAULT_PROGENY_DEPTH;
+      const next =
+        delta > 0
+          ? cur === undefined
+            ? undefined
+            : cur + 1
+          : cur === undefined
+            ? fallback
+            : Math.max(0, cur - 1);
+      const up = axis === 'ancestry' ? next : ancestry;
+      const down = axis === 'progeny' ? next : progeny;
+      mergeParams({
+        up: up === undefined ? null : String(up),
+        down: down === undefined ? null : String(down),
+      });
+    },
+    [ancestry, progeny, mergeParams],
   );
 
   // Izbor osobe u modu „Srodstvo": dodaj/ukloni; pri 3. izboru izgura najstariju.
@@ -77,22 +125,23 @@ export default function TreePage() {
     [focusPerson],
   );
 
-  // „Prethodni pregled" — vrati fokus na prethodno fokusiranu osobu (ili celu porodicu).
+  // „Prethodni pregled" — vrati fokus na prethodno fokusiranu osobu (ili ukloni fokus);
+  // dubina se zadržava.
   const goBack = useCallback(() => {
     if (focusHistory.length === 0) {
-      setSearchParams({}, { replace: true });
+      mergeParams({ focus: null });
       return;
     }
     const prev = focusHistory[focusHistory.length - 1]!;
     setFocusHistory((h) => h.slice(0, -1));
-    setSearchParams({ focus: String(prev) }, { replace: true });
-  }, [focusHistory, setSearchParams]);
+    mergeParams({ focus: String(prev) });
+  }, [focusHistory, mergeParams]);
 
-  // „Cela porodica" — ukloni fokus, prikaži celo stablo.
+  // „Cela porodica" — ukloni fokus I dubinu, prikaži celo neograničeno stablo.
   const resetFocus = useCallback(() => {
     setFocusHistory([]);
-    setSearchParams({}, { replace: true });
-  }, [setSearchParams]);
+    mergeParams({ focus: null, up: null, down: null });
+  }, [mergeParams]);
 
   // Prečice sa tastature: „z" dodaj dete, „x" dodaj supružnika — za trenutno
   // izabranu (ili fokusiranu) osobu. Ignoriše unos u poljima, offline i režim pregleda.
@@ -168,13 +217,18 @@ export default function TreePage() {
         onPersonClick={handlePersonClick}
         onPersonActivate={focusPerson}
         selectedIds={kinshipMode ? kinshipSel : undefined}
+        ancestryDepth={ancestry}
+        progenyDepth={progeny}
       />
 
       <TreeControls
         canGoBack={focusHistory.length > 0}
-        hasFocus={focusId !== null}
+        isBounded={focusId !== null || ancestry !== undefined || progeny !== undefined}
+        ancestry={ancestry}
+        progeny={progeny}
         onBack={goBack}
         onReset={resetFocus}
+        onChangeDepth={changeDepth}
       />
 
       {/* Prekidač moda „Srodstvo" (gore-desno) */}

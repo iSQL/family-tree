@@ -24,6 +24,10 @@ export interface TreeCanvasProps {
   onPersonActivate?: (id: number) => void;
   /** ID-jevi istaknutih čvorova (izbor za kalkulator srodstva). */
   selectedIds?: number[];
+  /** Generacije nagore od glavne osobe; undefined = neograničeno. */
+  ancestryDepth?: number;
+  /** Generacije nadole od glavne osobe; undefined = neograničeno. */
+  progenyDepth?: number;
 }
 
 const EMPTY_IDS: number[] = [];
@@ -78,6 +82,8 @@ export function TreeCanvas({
   onPersonClick,
   onPersonActivate,
   selectedIds = EMPTY_IDS,
+  ancestryDepth,
+  progenyDepth,
 }: TreeCanvasProps) {
   const contRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<Chart | null>(null);
@@ -89,6 +95,22 @@ export function TreeCanvas({
   clickRef.current = onPersonClick;
   const activateRef = useRef(onPersonActivate);
   activateRef.current = onPersonActivate;
+  // Dubina se čita i u create-efektu ([] deps) — drži je u ref-u da izbegne stale closure.
+  const ancestryDepthRef = useRef(ancestryDepth);
+  ancestryDepthRef.current = ancestryDepth;
+  const progenyDepthRef = useRef(progenyDepth);
+  progenyDepthRef.current = progenyDepth;
+
+  // Primeni dubinu na chart. undefined se NAMERNO prosleđuje — f3 to tretira kao
+  // neograničeno (vrednost se čita pri sledećem updateTree, tokom calcTree-a).
+  const applyDepth = (chart: Chart): void => {
+    chart
+      .setAncestryDepth(ancestryDepthRef.current as number)
+      .setProgenyDepth(progenyDepthRef.current as number)
+      // Braća/sestre glavne osobe f3 kači na njene RODITELJE; kad je dubina predaka 0
+      // roditelji nisu u stablu i f3 baca „no parents" (prazna strana) — pa ih tad krijemo.
+      .setShowSiblingsOfMain(ancestryDepthRef.current !== 0);
+  };
 
   const f3Data = useMemo(() => toF3(tree), [tree]);
 
@@ -106,8 +128,9 @@ export function TreeCanvas({
       .setCardXSpacing(260)
       .setCardYSpacing(170)
       .setOrientationVertical()
-      .setSingleParentEmptyCard(false)
-      .setShowSiblingsOfMain(true);
+      .setSingleParentEmptyCard(false);
+    // setShowSiblingsOfMain se postavlja u applyDepth (zavisi od dubine predaka).
+    applyDepth(chart); // pre prvog updateTree — prvi render je već potkresan
 
     const card = chart.setCardHtml();
     card.setCardInnerHtmlCreator((d) => {
@@ -183,8 +206,19 @@ export function TreeCanvas({
     chart.updateTree({ tree_position: 'main_to_middle' });
   }, [focusId, f3Data]);
 
+  // Promena dubine — re-trim oko trenutne glavne osobe bez pomeranja pogleda.
+  // Prvi render drži efekat podataka; ovde reagujemo samo na naknadne izmene.
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart || f3Data.length === 0 || firstRenderRef.current) return;
+    applyDepth(chart);
+    chart.updateTree({ tree_position: 'inherit' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ancestryDepth, progenyDepth, f3Data]);
+
   // Izbor (kalkulator srodstva) menja samo isticanje, bez re-rendera stabla —
-  // pa direktno prebacujemo klasu na postojećim karticama u DOM-u.
+  // pa direktno prebacujemo klasu na postojećim karticama u DOM-u. Dubina je u
+  // deps: kartica koju otkrije veća dubina mora ponovo dobiti klasu izbora.
   useEffect(() => {
     const cont = contRef.current;
     if (!cont) return;
@@ -192,7 +226,7 @@ export function TreeCanvas({
     cont.querySelectorAll<HTMLElement>('.ft-card').forEach((el) => {
       el.classList.toggle('ft-card-selected', sel.has(el.dataset.personId ?? ''));
     });
-  }, [selectedIds, f3Data]);
+  }, [selectedIds, f3Data, ancestryDepth, progenyDepth]);
 
   return <div ref={contRef} className="f3 ft-tree" data-testid="tree-canvas" />;
 }

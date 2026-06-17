@@ -65,6 +65,11 @@ export const STR = {
     loadFailed: 'Stablo nije moglo da se učita.',
     kinshipMode: 'Srodstvo',
     kinshipModeOn: 'Srodstvo: izaberi dve osobe',
+    ancestors: 'Predaka',
+    descendants: 'Potomaka',
+    depthAll: 'sve',
+    depthMore: 'Više generacija',
+    depthLess: 'Manje generacija',
   },
 
   search: {
