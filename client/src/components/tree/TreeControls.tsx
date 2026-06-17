@@ -1,4 +1,4 @@
-import { ArrowLeft, Maximize2, Minus, Plus } from 'lucide-react';
+import { ArrowLeft, Users, Minus, Plus } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { STR } from '../../lib/strings';
 
@@ -38,8 +38,8 @@ export function TreeControls({
           )}
           {hasFocus && (
             <Button variant="secondary" size="sm" className="shadow-lg" onClick={onReset}>
-              <Maximize2 size={16} aria-hidden="true" />
-              {STR.tree.wholeFamily}
+              <Users size={16} aria-hidden="true" />
+              {STR.tree.families}
             </Button>
           )}
         </div>

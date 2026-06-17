@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useSearchParams } from 'react-router-dom';
 import {
   Cake,
   FileText,
@@ -6,6 +6,7 @@ import {
   History,
   Settings,
   TreeDeciduous,
+  Users,
   type LucideIcon,
 } from 'lucide-react';
 import { OfflineBanner } from './OfflineBanner';
@@ -20,7 +21,7 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { to: '/', label: STR.nav.tree, icon: TreeDeciduous },
+  { to: '/', label: STR.nav.tree, icon: Users },
   { to: '/birthdays', label: STR.nav.birthdays, icon: Cake },
   { to: '/timeline', label: STR.nav.timeline, icon: History },
   { to: '/calculator', label: STR.nav.kinship, icon: HeartHandshake },
@@ -42,8 +43,17 @@ function mobileLinkClass({ isActive }: { isActive: boolean }): string {
   }`;
 }
 
+/** Rute koje se prikazuju u okviru porodice — nose tekući ?focus kroz navigaciju. */
+const FAMILY_SCOPED = new Set(['/birthdays', '/timeline']);
+
 /** Ljuska: desktop top bar, mobilni bottom tabovi (<768px), offline traka. */
 export function AppShell() {
+  const [searchParams] = useSearchParams();
+  const focus = searchParams.get('focus');
+  // Zadrži odabranu porodicu pri prelasku na Rođendane/Vremensku liniju.
+  const navTo = (to: string) =>
+    focus && FAMILY_SCOPED.has(to) ? { pathname: to, search: `?focus=${focus}` } : to;
+
   return (
     <div className="flex h-dvh flex-col pt-[env(safe-area-inset-top)]">
       <OfflineBanner />
@@ -60,7 +70,7 @@ export function AppShell() {
         </div>
         <nav className="ml-auto flex items-center gap-1">
           {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
-            <NavLink key={to} to={to} end={to === '/'} className={desktopLinkClass}>
+            <NavLink key={to} to={navTo(to)} end={to === '/'} className={desktopLinkClass}>
               <Icon size={16} aria-hidden="true" />
               {label}
             </NavLink>
@@ -85,7 +95,7 @@ export function AppShell() {
       {/* Mobilni bottom tabovi */}
       <nav className="flex border-t border-stone-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden dark:border-stone-700 dark:bg-stone-900">
         {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
-          <NavLink key={to} to={to} end={to === '/'} className={mobileLinkClass}>
+          <NavLink key={to} to={navTo(to)} end={to === '/'} className={mobileLinkClass}>
             <Icon size={20} aria-hidden="true" />
             <span className="max-w-full truncate px-0.5">{label}</span>
           </NavLink>

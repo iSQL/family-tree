@@ -7,6 +7,7 @@ import { useIsDesktop } from '../hooks/useIsDesktop';
 import { useReadonly, useCanWrite } from '../hooks/useAccess';
 import { TreeCanvas } from '../components/tree/TreeCanvas';
 import { TreeControls } from '../components/tree/TreeControls';
+import { FamilyChooser } from '../components/family/FamilyChooser';
 import { KinshipPanel } from '../components/tree/KinshipPanel';
 import { PersonDrawer } from '../components/person/PersonDrawer';
 import { PersonSheet } from '../components/person/PersonSheet';
@@ -195,6 +196,11 @@ export default function TreePage() {
         )}
       </div>
     );
+  }
+
+  // Bez fokusa → landing: izbor porodice. Stablo se prikazuje tek kad je osoba izabrana.
+  if (focusId === null) {
+    return <FamilyChooser tree={tree} onPick={focusPerson} />;
   }
 
   const sheetOpen = !isDesktop && selectedId !== null;

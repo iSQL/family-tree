@@ -13,7 +13,8 @@
       "PowerShell($env:Path = [Environment]::GetEnvironmentVariable\\('Path','Machine'\\) + ';' + [Environment]::GetEnvironmentVariable\\('Path','User'\\); Set-Location C:\\\\Git\\\\family-tree; npx tsc -p client/tsconfig.json --noEmit; \"client tsc exit: $LASTEXITCODE\")",
       "PowerShell($env:Path = [Environment]::GetEnvironmentVariable\\('Path','Machine'\\) + ';' + [Environment]::GetEnvironmentVariable\\('Path','User'\\); Set-Location C:\\\\Git\\\\family-tree; npx tsc -p client/tsconfig.json --noEmit; \"tsc exit: $LASTEXITCODE\"; Start-Sleep 1; node C:\\\\Users\\\\marem\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\ft-reset-check.mjs)",
       "Bash(npx tsc *)",
-      "PowerShell(npx vitest run shared/src/treeView.test.ts)"
+      "PowerShell(npx vitest run shared/src/treeView.test.ts)",
+      "PowerShell(npx vitest run shared/src/families.test.ts 2>&1)"
     ]
   }
 }

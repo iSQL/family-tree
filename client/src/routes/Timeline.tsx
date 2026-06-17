@@ -1,10 +1,13 @@
 import { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Baby, Cross, Heart, HeartCrack, type LucideIcon } from 'lucide-react';
 import type { PersonSlim, Union } from '@shared/types';
+import { filterTreeToFamily } from '@shared/families';
 import { comparePartialDates, formatPartialDate, parsePartialDate } from '../lib/dates';
 import { useTree } from '../hooks/useTree';
 import { Avatar } from '../components/person/Avatar';
+import { FamilyChooser } from '../components/family/FamilyChooser';
+import { FamilyScopeBar } from '../components/family/FamilyScopeBar';
 import { Button } from '../components/ui/Button';
 import { FullScreenSpinner } from '../components/ui/Spinner';
 import { STR } from '../lib/strings';
@@ -96,12 +99,23 @@ function buildGroups(persons: PersonSlim[], unions: Union[]): DecadeGroup[] {
 export default function TimelinePage() {
   const { data: tree, isPending, isError, refetch } = useTree();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const focusParam = searchParams.get('focus');
+  const focusId = focusParam !== null && Number.isFinite(Number(focusParam)) ? Number(focusParam) : null;
 
-  const groups = useMemo(() => (tree ? buildGroups(tree.persons, tree.unions) : null), [tree]);
+  // Vremenska linija u okviru odabrane porodice (komponente fokusa).
+  const familyTree = useMemo(
+    () => (tree && focusId !== null ? filterTreeToFamily(tree, focusId) : null),
+    [tree, focusId],
+  );
+  const groups = useMemo(
+    () => (familyTree ? buildGroups(familyTree.persons, familyTree.unions) : null),
+    [familyTree],
+  );
 
   if (isPending) return <FullScreenSpinner />;
 
-  if (isError || !groups) {
+  if (isError || !tree) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
         <p className="text-sm text-stone-600 dark:text-stone-300">{STR.common.error}</p>
@@ -110,18 +124,19 @@ export default function TimelinePage() {
     );
   }
 
-  if (groups.length === 0) {
-    return (
-      <div className="flex flex-1 items-center justify-center p-6">
-        <p className="text-sm text-stone-400">{STR.timeline.empty}</p>
-      </div>
-    );
+  // Bez odabrane porodice → prvo izbor porodice.
+  if (focusId === null || familyTree === null || groups === null) {
+    return <FamilyChooser tree={tree} onPick={(id) => navigate(`/timeline?focus=${id}`)} />;
   }
 
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="mx-auto w-full max-w-2xl space-y-6 p-4">
-        {groups.map((g) => (
+        <FamilyScopeBar familyTree={familyTree} onChange={() => navigate('/timeline')} />
+        {groups.length === 0 ? (
+          <p className="py-6 text-center text-sm text-stone-400">{STR.timeline.empty}</p>
+        ) : (
+          groups.map((g) => (
           <section key={g.decade}>
             <h2 className="mb-2 text-sm font-bold text-amber-800 dark:text-amber-400">{g.decade}-e</h2>
             <ul className="ml-3.5 space-y-5 border-l-2 border-stone-200 py-1 pl-7 dark:border-stone-700">
@@ -161,7 +176,8 @@ export default function TimelinePage() {
               })}
             </ul>
           </section>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );

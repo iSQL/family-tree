@@ -1,10 +1,13 @@
 import { useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Info } from 'lucide-react';
 import type { PersonSlim, Union } from '@shared/types';
+import { filterTreeToFamily } from '@shared/families';
 import { ageAt, daysBetween, formatPartialDate, nextBirthday } from '../lib/dates';
 import { useTree } from '../hooks/useTree';
 import { Avatar } from '../components/person/Avatar';
+import { FamilyChooser } from '../components/family/FamilyChooser';
+import { FamilyScopeBar } from '../components/family/FamilyScopeBar';
 import { Button } from '../components/ui/Button';
 import { Card, CardHeader } from '../components/ui/Card';
 import { FullScreenSpinner } from '../components/ui/Spinner';
@@ -78,14 +81,24 @@ function PersonLink({ person }: { person: PersonSlim }) {
 
 export default function BirthdaysPage() {
   const { data: tree, isPending, isError, refetch } = useTree();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const focusParam = searchParams.get('focus');
+  const focusId = focusParam !== null && Number.isFinite(Number(focusParam)) ? Number(focusParam) : null;
+
+  // Podaci se računaju i prikazuju u okviru odabrane porodice (komponente fokusa).
+  const familyTree = useMemo(
+    () => (tree && focusId !== null ? filterTreeToFamily(tree, focusId) : null),
+    [tree, focusId],
+  );
 
   const computed = useMemo(() => {
-    if (!tree) return null;
+    if (!familyTree) return null;
     const today = new Date();
-    const byId = new Map(tree.persons.map((p) => [p.id, p]));
+    const byId = new Map(familyTree.persons.map((p) => [p.id, p]));
 
     const birthdays: BirthdayEntry[] = [];
-    for (const p of tree.persons) {
+    for (const p of familyTree.persons) {
       if (p.death_date !== null) continue;
       const next = nextBirthday(p.birth_date, today);
       if (next === null) continue; // samo pun datum rođenja
@@ -96,7 +109,7 @@ export default function BirthdaysPage() {
     );
 
     const anniversaries: AnniversaryEntry[] = [];
-    for (const u of tree.unions) {
+    for (const u of familyTree.unions) {
       if (u.type !== 'marriage' || u.end_date !== null) continue;
       const p1 = byId.get(u.partner1_id);
       const p2 = byId.get(u.partner2_id);
@@ -108,11 +121,11 @@ export default function BirthdaysPage() {
     anniversaries.sort((a, b) => a.days - b.days);
 
     return { birthdays, anniversaries };
-  }, [tree]);
+  }, [familyTree]);
 
   if (isPending) return <FullScreenSpinner />;
 
-  if (isError || !computed) {
+  if (isError || !tree) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
         <p className="text-sm text-stone-600 dark:text-stone-300">{STR.common.error}</p>
@@ -121,9 +134,15 @@ export default function BirthdaysPage() {
     );
   }
 
+  // Bez odabrane porodice → prvo izbor porodice.
+  if (focusId === null || familyTree === null || computed === null) {
+    return <FamilyChooser tree={tree} onPick={(id) => navigate(`/birthdays?focus=${id}`)} />;
+  }
+
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="mx-auto w-full max-w-2xl space-y-4 p-4">
+        <FamilyScopeBar familyTree={familyTree} onChange={() => navigate('/birthdays')} />
         <Card>
           <CardHeader title={STR.birthdays.birthdaysTitle} />
           {computed.birthdays.length === 0 ? (
