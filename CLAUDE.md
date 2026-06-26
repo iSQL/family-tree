@@ -56,7 +56,7 @@ Dev mode runs with `AUTH_DISABLED=true` so the login screen is skipped. The serv
 
 ### Kinship calculator (`shared/src/kinship/`)
 
-Runs on the client over the cached `TreeResponse`, and is unit-tested on the server (pure, no I/O). BFS from both persons upward to the nearest common ancestor over `father_id`/`mother_id`, allowing at most **one** spouse edge at each end (for in-law terms: snaha, zet, svekar, tast, dever, šurak…). Term lookup is a rule table keyed by (steps-up, steps-down, target gender, paternal/maternal line, spouse edges). Falls back to a composed chain ("sin brata oca") when no term matches. See [shared/src/kinship/index.ts](shared/src/kinship/index.ts).
+Runs on the client over the cached `TreeResponse`, and is unit-tested on the server (pure, no I/O). BFS from both persons upward to the nearest common ancestor over `father_id`/`mother_id`, allowing at most **one** spouse edge at each end. The rule table ([terms.ts](shared/src/kinship/terms.ts)) is keyed by (steps-up, steps-down, target gender, paternal/maternal line, spouse edges) and covers blood ties (incl. deep ancestors navrdeda…beli orao and descendants up to bele pčele) plus in-law terms: snaha/zet (generalized to any descendant-line relative), svekar, tast, dever, šurak, očuh, maćeha, pastorak, strina/ujna/teča, pašenog, jetrva, svojak, šurnjaja, svastić… **Prija/prijatelj** (parents of married children) has a spouse edge in the *middle* of the path, so BFS misses it — it's caught by a dedicated `detectPrija` in [index.ts](shared/src/kinship/index.ts). Falls back to a composed chain ("sin brata oca") + cousin degree when no term matches.
 
 ### Data layout (`data/`, gitignored)
 

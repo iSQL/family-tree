@@ -3,12 +3,14 @@
  *
  * Algoritam: BFS od obe osobe naviše do najbližeg zajedničkog pretka (LCA)
  * preko father_id/mother_id, uz najviše JEDNU supružničku ivicu na svakom
- * kraju putanje (za tazbinu: snaha, zet, svekar, tast, dever, šurak…).
- * Termin se bira iz tabele pravila po (koraci-gore, koraci-dole, pol osobe B,
- * linija — očinska/majčinska, supružničke ivice); rečenica i kompozicioni
- * fallback opisi se grade ovde.
+ * kraju putanje (za tazbinu: snaha, zet, svekar, tast, dever, šurak, očuh,
+ * maćeha, pastorak, pašenog, jetrva, svojak, šurnjaja…). Termin se bira iz
+ * tabele pravila po (koraci-gore, koraci-dole, pol osobe B, linija —
+ * očinska/majčinska, supružničke ivice); rečenica i kompozicioni fallback
+ * opisi se grade ovde. Prijateljstvo (prija/prijatelj) ima supružničku ivicu
+ * u SREDINI putanje pa se hvata posebnim detektorom (`detectPrija`).
  */
-import type { PersonSlim, TreeResponse } from '../types';
+import type { Gender, PersonSlim, TreeResponse } from '../types';
 import { buildKinGraph, type KinGraph } from './graph';
 import { findKinPath } from './resolve';
 import { resolveTerm, type TermGender } from './terms';
@@ -111,6 +113,37 @@ const UNRELATED: KinshipResult = {
   apexIndex: null,
 };
 
+interface PrijaMatch {
+  /** Putanja A → A-ino dete → supružnik deteta → B. */
+  path: number[];
+  /** Pol osobe B (određuje termin: prijatelj/prija). */
+  bGender: Gender;
+  /** Pol osobe koja se udala/oženila u porodicu (snaha = F, zet = M). */
+  inLawGender: Gender;
+  /** Brak dece je bivši. */
+  former: boolean;
+}
+
+/**
+ * Prijateljstvo (prija/prijatelj): roditelji venčane dece. Supružnička ivica je
+ * u SREDINI putanje (dole do deteta → brak → gore do svata), pa je BFS u
+ * findKinPath ne hvata; tražimo je posebno kad nema bližeg srodstva.
+ */
+function detectPrija(graph: KinGraph, aId: number, bId: number): PrijaMatch | null {
+  const b = graph.persons.get(bId);
+  if (b === undefined) return null;
+  for (const childId of graph.childrenOf.get(aId) ?? []) {
+    for (const edge of graph.spousesOf.get(childId) ?? []) {
+      const inLaw = graph.persons.get(edge.spouseId);
+      if (inLaw === undefined) continue;
+      if (inLaw.father_id === bId || inLaw.mother_id === bId) {
+        return { path: [aId, childId, edge.spouseId, bId], bGender: b.gender, inLawGender: inLaw.gender, former: edge.former };
+      }
+    }
+  }
+  return null;
+}
+
 /** Glavni API — čist, bez I/O; radi nad TreeResponse kešom na klijentu, testira se na serveru. */
 export function describeKinship(tree: TreeResponse, fromId: number, toId: number): KinshipResult {
   const graph = buildKinGraph(tree);
@@ -121,8 +154,26 @@ export function describeKinship(tree: TreeResponse, fromId: number, toId: number
     return { related: true, term: null, description: 'Ista osoba.', path: [fromId], degree: 0, apexIndex: 0 };
   }
 
+  const aName = a.first_name || `#${a.id}`;
+  const bName = b.first_name || `#${b.id}`;
+
   const kp = findKinPath(graph, fromId, toId);
-  if (kp === null) return UNRELATED;
+  if (kp === null) {
+    const prija = detectPrija(graph, fromId, toId);
+    if (prija !== null) {
+      const role = prija.inLawGender === 'F' ? 'snahe' : prija.inLawGender === 'M' ? 'zeta' : 'deteta';
+      const formerSuffix = prija.former ? ' (bivši)' : '';
+      const base = { related: true as const, path: prija.path, degree: null, apexIndex: null };
+      if (prija.bGender === 'M') {
+        return { ...base, term: 'prijatelj', description: `${bName} je ${possessive(aName, 'm')} prijatelj (roditelj ${role})${formerSuffix}.` };
+      }
+      if (prija.bGender === 'F') {
+        return { ...base, term: 'prija', description: `${bName} je ${possessive(aName, 'f')} prija (roditelj ${role})${formerSuffix}.` };
+      }
+      return { ...base, term: null, description: `${bName} i ${aName} su prijatelji (roditelji venčane dece)${formerSuffix}.` };
+    }
+    return UNRELATED;
+  }
 
   const hasSpouseEdge = kp.spouseAtA !== null || kp.spouseAtB !== null;
   const degree = hasSpouseEdge ? null : kp.stepsUp + kp.stepsDown;
@@ -132,8 +183,6 @@ export function describeKinship(tree: TreeResponse, fromId: number, toId: number
   const former = (kp.spouseAtA?.former ?? false) || (kp.spouseAtB?.former ?? false);
   const formerSuffix = former ? ' (bivši)' : '';
 
-  const aName = a.first_name || `#${a.id}`;
-  const bName = b.first_name || `#${b.id}`;
   const resolved = resolveTerm(graph, kp, a, b);
 
   if (resolved.term !== null) {

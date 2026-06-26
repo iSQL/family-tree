@@ -55,6 +55,10 @@ const SASA = 39;
 const VANJA = 40;
 const ZARKO = 41;
 const MILAN = 42;
+const MILENA = 43;
+const UROS = 44;
+const SARA = 45;
+const JOVANA = 46;
 
 function person(
   id: number,
@@ -139,6 +143,10 @@ const tree: TreeResponse = {
     person(VANJA, 'Vanja', 'U', SASA, null),
     person(ZARKO, 'Žarko', 'M'),
     person(MILAN, 'Milan', 'M', null, VESNA),
+    person(MILENA, 'Milena', 'F', null, VESNA), // ćerka Vesne pre Dragana → Draganova pastorka
+    person(UROS, 'Uroš', 'M', VLADIMIR, IVANA), // dete Ivane (Anine sestre) → Markov svastić
+    person(SARA, 'Sara', 'F', VLADIMIR, IVANA),
+    person(JOVANA, 'Jovana', 'F'), // žena Nikole (Aninog brata) → Markova šurnjaja
   ],
   unions: [
     union(ZIVOJIN, STANIJA),
@@ -157,6 +165,7 @@ const tree: TreeResponse = {
     union(MILA, FILIP),
     union(LUKA, TEODORA),
     union(IVANA, VLADIMIR),
+    union(NIKOLA, JOVANA),
   ],
 };
 
@@ -274,15 +283,34 @@ const CASES: Case[] = [
     descIncludes: ['(stričeva žena)', '(bivši)'],
   },
 
+  // duboki preci i potomci preko 4. kolena
+  { name: 'čukununuk', from: MILUTIN, to: LUKA, term: 'čukununuk', degree: 4 },
+  { name: 'čukununuka', from: MILUTIN, to: MILA, term: 'čukununuka', degree: 4 },
+  { name: 'navrdeda (up5)', from: LUKA, to: ZIVOJIN, term: 'navrdeda', degree: 5 },
+  { name: 'navrbaba (up5)', from: LUKA, to: STANIJA, term: 'navrbaba', degree: 5 },
+
+  // očuh / maćeha i pastorak / pastorka (očuhova/maćehina deca)
+  { name: 'pastorak (ženin sin)', from: DRAGAN, to: MILAN, term: 'pastorak', degree: null, descIncludes: ['(ženin sin)'] },
+  { name: 'pastorka (ženina ćerka)', from: DRAGAN, to: MILENA, term: 'pastorka', degree: null, descIncludes: ['(ženina ćerka)'] },
+  { name: 'očuh (majčin muž)', from: MILAN, to: DRAGAN, term: 'očuh', degree: null, descIncludes: ['(majčin muž)'] },
+  { name: 'maćeha (očeva žena)', from: NENAD, to: VESNA, term: 'maćeha', degree: null, descIncludes: ['(očeva žena)'] },
+
+  // dublji zet / snaha (unukin muž / unukova žena)
+  { name: 'zet (unukin muž)', from: JOVAN, to: STEFAN, term: 'zet', degree: null, descIncludes: ['(unukin muž)'] },
+  { name: 'snaha (unukova žena)', from: JOVAN, to: ANA, term: 'snaha', degree: null, descIncludes: ['(unukova žena)'] },
+
+  // svastić / svastičina (deca svastike) i dvostruko-tazbinske veze
+  { name: 'svastić', from: MARKO, to: UROS, term: 'svastić', degree: null, descIncludes: ['(sin ženine sestre)'] },
+  { name: 'svastičina', from: MARKO, to: SARA, term: 'svastičina', degree: null, descIncludes: ['(ćerka ženine sestre)'] },
+  { name: 'šurnjaja', from: MARKO, to: JOVANA, term: 'šurnjaja', degree: null, descIncludes: ['(žena ženinog brata)'] },
+  { name: 'svojak', from: ANA, to: STEFAN, term: 'svojak', degree: null, descIncludes: ['(muž muževljeve sestre)'] },
+
+  // prija / prijatelj (roditelji venčane dece)
+  { name: 'prijatelj (roditelj snahe)', from: DRAGAN, to: RADOVAN, term: 'prijatelj', degree: null, descIncludes: ['(roditelj snahe)'] },
+  { name: 'prija (roditelj snahe)', from: DRAGAN, to: DUSANKA, term: 'prija', degree: null, descIncludes: ['(roditelj snahe)'] },
+  { name: 'prijatelj obrnuto (roditelj zeta)', from: RADOVAN, to: DRAGAN, term: 'prijatelj', degree: null, descIncludes: ['(roditelj zeta)'] },
+
   // nepokrivene putanje → related, term null, kompozicioni opis
-  {
-    name: 'fallback: čukununuk → rođak u 4. kolenu',
-    from: MILUTIN,
-    to: LUKA,
-    term: null,
-    degree: 4,
-    descIncludes: ['rođak u 4. kolenu'],
-  },
   {
     name: 'fallback: dete deteta (pol U) → rođak/rođaka u 3. kolenu',
     from: MARKO,
@@ -350,5 +378,59 @@ describe('describeKinship — oblik rezultata', () => {
     const r = describeKinship(tree, MARKO, MARKO);
     expect(r.related).toBe(true);
     expect(r.path).toEqual([MARKO]);
+  });
+});
+
+describe('describeKinship — duboka loza predaka i potomaka', () => {
+  // Linearna loza istog pola: id 100 (EGO) → 101 → … → 114 (otac → … → 14. koleno).
+  function lineage(gender: Gender): TreeResponse {
+    const persons: PersonSlim[] = [];
+    for (let i = 0; i <= 14; i++) {
+      const parentId = i < 14 ? 100 + i + 1 : null;
+      const fatherId = gender === 'M' ? parentId : null;
+      const motherId = gender === 'F' ? parentId : null;
+      persons.push(person(100 + i, `G${i}`, gender, fatherId, motherId));
+    }
+    return { persons, unions: [] };
+  }
+
+  // up koleno → [muški termin, ženski termin]
+  const DEEP: Array<[number, string, string]> = [
+    [1, 'otac', 'majka'],
+    [2, 'deda', 'baba'],
+    [3, 'pradeda', 'prababa'],
+    [4, 'čukundeda', 'čukunbaba'],
+    [5, 'navrdeda', 'navrbaba'],
+    [6, 'kurđel', 'kurđela'],
+    [7, 'kurlebalo', 'kurlebala'],
+    [8, 'sukurdol', 'sukurdola'],
+    [9, 'sudepač', 'sudepača'],
+    [10, 'pardupan', 'pardupana'],
+    [11, 'ožimikura', 'ožimikurka'],
+    [12, 'kurajber', 'kurajbera'],
+    [13, 'sajkatava', 'sajkatavka'],
+    [14, 'beli orao', 'bela pčela'],
+  ];
+
+  const male = lineage('M');
+  const female = lineage('F');
+
+  for (const [up, m, f] of DEEP) {
+    it(`predak ${up}. kolena: ${m} / ${f}`, () => {
+      const rm = describeKinship(male, 100, 100 + up);
+      expect(rm.term).toBe(m);
+      expect(rm.degree).toBe(up);
+      const rf = describeKinship(female, 100, 100 + up);
+      expect(rf.term).toBe(f);
+    });
+  }
+
+  it('potomci: čukununuk (down4), pa bele pčele (down ≥ 5)', () => {
+    // iz najstarijeg (114) naniže do mlađih
+    expect(describeKinship(male, 114, 110).term).toBe('čukununuk'); // down4
+    expect(describeKinship(male, 114, 109).term).toBe('beli orao'); // down5
+    expect(describeKinship(male, 114, 100).term).toBe('beli orao'); // down14
+    expect(describeKinship(female, 114, 110).term).toBe('čukununuka');
+    expect(describeKinship(female, 114, 109).term).toBe('bela pčela');
   });
 });

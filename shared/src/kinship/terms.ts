@@ -23,6 +23,39 @@ function t(term: string, gender: TermGender, detail: string | null = null): Reso
   return { term, gender, detail };
 }
 
+/**
+ * Duboki preci preko 4. kolena (čukundeda) — [muški, ženski] oblik po broju koraka naviše.
+ * Folklorni nazivi (od navr- naviše retko se standardizuju); izvor: tradicionalna srpska lestvica.
+ */
+const DEEP_ANCESTORS: Record<number, [string, string]> = {
+  5: ['navrdeda', 'navrbaba'],
+  6: ['kurđel', 'kurđela'],
+  7: ['kurlebalo', 'kurlebala'],
+  8: ['sukurdol', 'sukurdola'],
+  9: ['sudepač', 'sudepača'],
+  10: ['pardupan', 'pardupana'],
+  11: ['ožimikura', 'ožimikurka'],
+  12: ['kurajber', 'kurajbera'],
+  13: ['sajkatava', 'sajkatavka'],
+  14: ['beli orao', 'bela pčela'],
+};
+
+/** Detalj uz zet: muž krvne srodnice niz lozu (njeno mesto u porodici). */
+function zetDetail(up: number, down: number): string | null {
+  if (up === 0 && down === 1) return '(ćerkin muž)';
+  if (up === 1 && down === 1) return '(sestrin muž)';
+  if (up === 0 && down === 2) return '(unukin muž)';
+  return null;
+}
+
+/** Detalj uz snaha: žena krvnog srodnika niz lozu (njegovo mesto u porodici). */
+function snahaDetail(up: number, down: number): string | null {
+  if (up === 0 && down === 1) return '(sinovljeva žena)';
+  if (up === 1 && down === 1) return '(bratova žena)';
+  if (up === 0 && down === 2) return '(unukova žena)';
+  return null;
+}
+
 /** Bira termin za pronađenu putanju; NONE kad pravilo nije pokriveno. */
 export function resolveTerm(graph: KinGraph, path: KinPath, a: PersonSlim, b: PersonSlim): ResolvedTerm {
   const { stepsUp: up, stepsDown: down, firstUpLine: line, spouseAtA: sA, spouseAtB: sB } = path;
@@ -53,6 +86,8 @@ export function resolveTerm(graph: KinGraph, path: KinPath, a: PersonSlim, b: Pe
       }
       if (up === 3) return bg === 'M' ? t('pradeda', 'm') : bg === 'F' ? t('prababa', 'f') : NONE;
       if (up === 4) return bg === 'M' ? t('čukundeda', 'm') : bg === 'F' ? t('čukunbaba', 'f') : NONE;
+      const deep = DEEP_ANCESTORS[up];
+      if (deep) return bg === 'M' ? t(deep[0], 'm') : bg === 'F' ? t(deep[1], 'f') : NONE;
       return NONE;
     }
     if (up === 0) {
@@ -60,6 +95,9 @@ export function resolveTerm(graph: KinGraph, path: KinPath, a: PersonSlim, b: Pe
       if (down === 1) return bg === 'M' ? t('sin', 'm') : bg === 'F' ? t('ćerka', 'f') : t('dete', 'n');
       if (down === 2) return bg === 'M' ? t('unuk', 'm') : bg === 'F' ? t('unuka', 'f') : NONE;
       if (down === 3) return bg === 'M' ? t('praunuk', 'm') : bg === 'F' ? t('praunuka', 'f') : NONE;
+      if (down === 4) return bg === 'M' ? t('čukununuk', 'm') : bg === 'F' ? t('čukununuka', 'f') : NONE;
+      // sve generacije ispod čukununuka: bele pčele
+      if (down >= 5) return bg === 'M' ? t('beli orao', 'm') : bg === 'F' ? t('bela pčela', 'f') : NONE;
       return NONE;
     }
     if (up === 1 && down === 1) {
@@ -103,6 +141,12 @@ export function resolveTerm(graph: KinGraph, path: KinPath, a: PersonSlim, b: Pe
       if (bg === 'F') return t(`sestra ${via}`, 'f');
       return NONE;
     }
+    if (up === 2 && down === 3) {
+      // dete brata/sestre od strica/ujaka/tetke (dete rođaka)
+      if (bg === 'M') return t('rođaković', 'm', '(dete rođaka)');
+      if (bg === 'F') return t('rođakovićka', 'f', '(dete rođake)');
+      return NONE;
+    }
     return NONE;
   }
 
@@ -110,6 +154,13 @@ export function resolveTerm(graph: KinGraph, path: KinPath, a: PersonSlim, b: Pe
   if (sA && !sB) {
     const spouse = at(1);
     if (spouse === undefined) return NONE;
+    if (up === 0 && down === 1) {
+      // supružnikovo dete koje mi nije krvni rod: pastorak / pastorka
+      const sd = spouse.gender === 'F' ? 'ženin' : spouse.gender === 'M' ? 'muževljev' : 'supružnikov';
+      if (bg === 'M') return t('pastorak', 'm', `(${sd} sin)`);
+      if (bg === 'F') return t('pastorka', 'f', `(${spouse.gender === 'F' ? 'ženina' : spouse.gender === 'M' ? 'muževljeva' : 'supružnikova'} ćerka)`);
+      return NONE;
+    }
     if (up === 1 && down === 0) {
       // roditelj supružnika: svekar/svekrva, tast/tašta
       if (spouse.gender === 'M') {
@@ -136,23 +187,26 @@ export function resolveTerm(graph: KinGraph, path: KinPath, a: PersonSlim, b: Pe
       }
       return NONE;
     }
+    if (up === 1 && down === 2 && spouse.gender === 'F' && firstDown !== undefined && firstDown.gender === 'F') {
+      // deca ženine sestre (svastike): svastić / svastičina
+      if (bg === 'M') return t('svastić', 'm', '(sin ženine sestre)');
+      if (bg === 'F') return t('svastičina', 'f', '(ćerka ženine sestre)');
+      return NONE;
+    }
     return NONE;
   }
 
   // ── supružnička ivica samo na B strani: supružnici rodbine ──
   if (!sA && sB) {
     if (beforeB === undefined) return NONE;
-    if (up === 0 && down === 1) {
-      // supružnik deteta
-      if (bg === 'M' && beforeB.gender === 'F') return t('zet', 'm', '(ćerkin muž)');
-      if (bg === 'F' && beforeB.gender === 'M') return t('snaha', 'f', '(sinovljeva žena)');
-      return NONE;
-    }
-    if (up === 1 && down === 1) {
-      // supružnik brata/sestre
-      if (bg === 'M' && beforeB.gender === 'F') return t('zet', 'm', '(sestrin muž)');
-      if (bg === 'F' && beforeB.gender === 'M') return t('snaha', 'f', '(bratova žena)');
-      return NONE;
+    if (down === 0) {
+      // supružnik pretka
+      if (up === 1) {
+        // roditeljev supružnik koji mi nije krvni roditelj: očuh / maćeha
+        if (bg === 'M') return t('očuh', 'm', beforeB.gender === 'F' ? '(majčin muž)' : '(roditeljev suprug)');
+        if (bg === 'F') return t('maćeha', 'f', beforeB.gender === 'M' ? '(očeva žena)' : '(roditeljeva supruga)');
+      }
+      return NONE; // dublji „pomajka/poočim" preci nemaju ustaljen termin → fallback
     }
     if (up === 2 && down === 1) {
       // supružnik strica/ujaka/tetke: strina, ujna, teča
@@ -162,15 +216,25 @@ export function resolveTerm(graph: KinGraph, path: KinPath, a: PersonSlim, b: Pe
       }
       return NONE;
     }
+    // opšti slučaj: supružnik krvnog srodnika niz lozu → zet (muž srodnice) / snaha (žena srodnika)
+    if (bg === 'M' && beforeB.gender === 'F') return t('zet', 'm', zetDetail(up, down));
+    if (bg === 'F' && beforeB.gender === 'M') return t('snaha', 'f', snahaDetail(up, down));
     return NONE;
   }
 
-  // ── obe ivice: pašenog / jetrva ──
+  // ── obe ivice: supružnici supružnikove braće/sestara (pašenog, jetrva, šurnjaja, svojak) ──
   if (up === 1 && down === 1) {
-    const spouse = at(1);
-    if (spouse === undefined || beforeB === undefined) return NONE;
-    if (bg === 'M' && spouse.gender === 'F' && beforeB.gender === 'F') return t('pašenog', 'm', '(muž ženine sestre)');
-    if (bg === 'F' && spouse.gender === 'M' && beforeB.gender === 'M') return t('jetrva', 'f', '(žena muževljevog brata)');
+    const spouse = at(1); // A-in supružnik
+    if (spouse === undefined || beforeB === undefined) return NONE; // beforeB = supružnikov brat/sestra
+    if (spouse.gender === 'F') {
+      // A oženjen — veza preko žene
+      if (beforeB.gender === 'F' && bg === 'M') return t('pašenog', 'm', '(muž ženine sestre)');
+      if (beforeB.gender === 'M' && bg === 'F') return t('šurnjaja', 'f', '(žena ženinog brata)');
+    } else if (spouse.gender === 'M') {
+      // A udata — veza preko muža
+      if (beforeB.gender === 'M' && bg === 'F') return t('jetrva', 'f', '(žena muževljevog brata)');
+      if (beforeB.gender === 'F' && bg === 'M') return t('svojak', 'm', '(muž muževljeve sestre)');
+    }
   }
   return NONE;
 }

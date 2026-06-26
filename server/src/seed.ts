@@ -1,5 +1,12 @@
 /**
- * Fixture porodica za razvoj: tri generacije, ponovni brak i polubrat.
+ * Fixture porodica za razvoj i testiranje kalkulatora srodstva: ~100 osoba kroz
+ * 6 generacija, sa tankom lozom dubokih predaka (deda…navrdeda…kurđel), braćom
+ * i sestrama (stric/ujak/tetka), supružnicima koji ulaze sa SVOJOM porodicom
+ * (roditelji + brat/sestra) — čime se pokrivaju tazbinske veze (svekar, tast,
+ * snaha, zet, dever, zaova, šurak, svastika, pašenog, jetrva, šurnjaja, svojak)
+ * i prija/prijatelj (roditelji venčane dece). Jedan razvod + ponovni brak daje
+ * očuh/maćeha/pastorak. Deterministički je (bez slučajnih brojeva).
+ *
  * Pokretanje: npm run seed (cwd = server/). BRIŠE postojeće podatke!
  */
 import fs from 'node:fs';
@@ -58,83 +65,172 @@ const insertUnion = db.prepare(
 function brak(
   a: number,
   b: number,
-  start: string | null,
-  end: string | null = null,
+  start: string | number | null,
+  end: string | number | null = null,
   endReason: 'divorce' | 'death' | 'separation' | null = null,
 ): void {
   const [p1, p2] = a < b ? [a, b] : [b, a];
-  insertUnion.run(p1, p2, 'marriage', start, end, endReason, null);
+  const s = start === null ? null : String(start);
+  const e = end === null ? null : String(end);
+  insertUnion.run(p1, p2, 'marriage', s, e, endReason, null);
+}
+
+// ─── Generator (deterministički) ───────────────────────────────────────────
+
+const M_NAMES = [
+  'Aleksandar', 'Milorad', 'Borivoje', 'Vukašin', 'Dragan', 'Zoran', 'Nikola', 'Miloš', 'Stefan',
+  'Marko', 'Luka', 'Filip', 'Đorđe', 'Petar', 'Pavle', 'Uroš', 'Vladimir', 'Nemanja', 'Ognjen',
+  'Lazar', 'Strahinja', 'Andrej', 'Mihajlo', 'Vasilije', 'Bogdan', 'Damjan', 'Jovan', 'Đurađ',
+  'Ranko', 'Slobodan', 'Branislav', 'Miodrag', 'Radovan', 'Veljko', 'Dušan', 'Goran', 'Predrag',
+  'Saša', 'Relja', 'Časlav',
+];
+const F_NAMES = [
+  'Darinka', 'Stanislava', 'Milica', 'Gordana', 'Vesna', 'Jasmina', 'Jelena', 'Tamara', 'Đurđa',
+  'Ana', 'Mila', 'Sofija', 'Teodora', 'Katarina', 'Ivana', 'Olga', 'Nada', 'Ljubica', 'Svetlana',
+  'Maja', 'Marija', 'Jovana', 'Anđela', 'Tijana', 'Dragana', 'Snežana', 'Vera', 'Zorica', 'Biljana',
+  'Mirjana', 'Radmila', 'Leposava', 'Danica', 'Bojana', 'Kristina', 'Milena', 'Sara', 'Nevena',
+  'Dunja', 'Iskra',
+];
+const SURNAMES = [
+  'Petrović', 'Jovanović', 'Nikolić', 'Ilić', 'Marković', 'Pavlović', 'Stojanović', 'Lazić',
+  'Ristić', 'Tadić', 'Savić', 'Kovačević', 'Popović', 'Ćirić', 'Mitrović', 'Đukić', 'Šarić',
+];
+const PLACES = ['Niš', 'Beograd', 'Kragujevac', 'Novi Sad', 'Čačak', 'Kraljevo', 'Leskovac', 'Užice'];
+
+let mi = 0;
+let fi = 0;
+let si = 0;
+let salt = 0;
+let childCounter = 0;
+const nm = (): string => M_NAMES[mi++ % M_NAMES.length]!;
+const nf = (): string => F_NAMES[fi++ % F_NAMES.length]!;
+const ns = (): string => SURNAMES[si++ % SURNAMES.length]!;
+
+/** Deterministički datum rođenja iz godine i rednog broja. */
+function bd(year: number): string {
+  salt++;
+  const mm = String((salt * 7) % 12 + 1).padStart(2, '0');
+  const dd = String((salt * 13) % 27 + 1).padStart(2, '0');
+  return `${year}-${mm}-${dd}`;
+}
+
+type G = 'M' | 'F';
+interface Kid {
+  id: number;
+  gender: G;
+}
+interface Couple {
+  husband: number;
+  wife: number;
+}
+
+function P(gender: G, year: number, father: number | null = null, mother: number | null = null, opts: Partial<SeedPerson> = {}): number {
+  return osoba({
+    first_name: gender === 'M' ? nm() : nf(),
+    gender,
+    father_id: father,
+    mother_id: mother,
+    birth_date: bd(year),
+    birth_place: PLACES[salt % PLACES.length]!,
+    ...opts,
+  });
+}
+
+/** Deca jednog para (otac = husband, majka = wife). */
+function children(c: Couple, n: number, startYear: number): Kid[] {
+  const out: Kid[] = [];
+  for (let i = 0; i < n; i++) {
+    const gender: G = childCounter++ % 2 === 0 ? 'M' : 'F';
+    out.push({ id: P(gender, startYear + i * 2, c.husband, c.wife), gender });
+  }
+  return out;
+}
+
+function coupleOf(blood: Kid, spouse: number): Couple {
+  return blood.gender === 'M' ? { husband: blood.id, wife: spouse } : { husband: spouse, wife: blood.id };
+}
+
+/**
+ * Ženi/udaje krvnog člana za osobu „spolja". Ako withFamily, supružnik dolazi sa
+ * svojim roditeljima i jednim bratom/sestrom (koji je takođe u braku) — to puni
+ * tazbinu (svekar/tast, dever/zaova/šurak/svastika, pašenog/jetrva…) i prija.
+ */
+function inMarry(bloodId: number, bloodGender: G, year: number, withFamily: boolean): number {
+  const sg: G = bloodGender === 'M' ? 'F' : 'M';
+  const sur = ns();
+  let father: number | null = null;
+  let mother: number | null = null;
+  if (withFamily) {
+    father = P('M', year - 30, null, null, { last_name: sur });
+    mother = P('F', year - 27, null, null, { last_name: sur, maiden_name: ns() });
+    brak(father, mother, year - 31);
+    const sibG: G = salt % 2 === 0 ? 'M' : 'F';
+    const sib = P(sibG, year + 2, father, mother, sibG === 'F' ? { last_name: sur, maiden_name: sur } : { last_name: sur });
+    const sibSpouse = P(sibG === 'M' ? 'F' : 'M', year + 1, null, null, { last_name: sibG === 'M' ? sur : ns() });
+    brak(sib, sibSpouse, year + 26);
+  }
+  const spouse =
+    sg === 'F'
+      ? P('F', year - 2, father, mother, { last_name: 'Đorđević', maiden_name: sur })
+      : P('M', year - 2, father, mother, { last_name: sur });
+  brak(bloodId, spouse, year);
+  return spouse;
 }
 
 db.transaction(() => {
   db.exec('DELETE FROM unions; DELETE FROM persons;');
 
-  // 1. generacija
-  const milorad = osoba({
-    first_name: 'Milorad', gender: 'M', birth_date: '1932-05-14', death_date: '2005-03-17', birth_place: 'Niš',
-  });
-  const stanislava = osoba({
-    first_name: 'Stanislava', maiden_name: 'Šarić', gender: 'F', birth_date: '1936-11-02', birth_place: 'Niš',
-  });
-  const vukasin = osoba({
-    first_name: 'Vukašin', last_name: 'Ćirić', gender: 'M', birth_date: '1938-02-23', birth_place: 'Kragujevac',
-  });
-  const milica = osoba({
-    first_name: 'Milica', last_name: 'Ćirić', maiden_name: 'Đukić', gender: 'F', birth_date: '1942', // parcijalan datum
+  // ── Tanka loza dubokih predaka (za pradeda/čukundeda/navrdeda/kurđel) ──
+  const kurdel = P('M', 1838, null, null, { last_name: 'Đorđević', death_date: '1901-04-12' });
+  const navrdeda = P('M', 1865, kurdel, null, { last_name: 'Đorđević', death_date: '1930-08-03' });
+
+  // ── G1: koren porodice ──
+  const g1h = P('M', 1905, navrdeda, null, { last_name: 'Đorđević', title: 'pop', death_date: '1979-02-20' });
+  const g1w = P('F', 1910, null, null, { last_name: 'Đorđević', maiden_name: ns(), death_date: '1988-11-30' });
+  brak(g1h, g1w, 1928);
+  const root: Couple = { husband: g1h, wife: g1w };
+
+  // ── G2: deca korena, svako se ženi/udaje sa svojom porodicom (prija + tazbina) ──
+  const g2kids = children(root, 4, 1930);
+  const g2couples = g2kids.map((k, i) => coupleOf(k, inMarry(k.id, k.gender, 1955 + i, true)));
+
+  // ── G3 ──
+  const g3couples: Couple[] = [];
+  const g3bloodMales: number[] = [];
+  g2couples.forEach((c, ci) => {
+    const kids = children(c, 2 + (ci % 2), 1957 + ci * 2);
+    kids.forEach((k, ki) => {
+      if (k.gender === 'M') g3bloodMales.push(k.id);
+      const spouse = inMarry(k.id, k.gender, 1982 + ci + ki, (ci + ki) % 2 === 0);
+      g3couples.push(coupleOf(k, spouse));
+    });
   });
 
-  // 2. generacija
-  const dragan = osoba({
-    first_name: 'Dragan', gender: 'M', title: 'prof. dr', birth_date: '1958-07-09', birth_place: 'Niš',
-    father_id: milorad, mother_id: stanislava,
-  });
-  const zoran = osoba({
-    first_name: 'Zoran', gender: 'M', birth_date: '1961-09-30', birth_place: 'Niš',
-    father_id: milorad, mother_id: stanislava,
-  });
-  const gordana = osoba({
-    first_name: 'Gordana', maiden_name: 'Ćirić', gender: 'F', title: 'dr', birth_date: '1963-04-18', birth_place: 'Kragujevac',
-    father_id: vukasin, mother_id: milica,
-  });
-  const vesna = osoba({
-    first_name: 'Vesna', last_name: 'Petrović', gender: 'F', birth_date: '1959-12-01', birth_place: 'Beograd',
-  });
-  const jasmina = osoba({
-    first_name: 'Jasmina', maiden_name: 'Šarac', gender: 'F', birth_date: '1964-06-25',
+  // ── G4 ──
+  const g4couples: Couple[] = [];
+  g3couples.forEach((c, ci) => {
+    const kids = children(c, 1 + (ci % 2), 1985 + ci);
+    kids.forEach((k, ki) => {
+      if ((ci + ki) % 3 !== 0) {
+        g4couples.push(coupleOf(k, inMarry(k.id, k.gender, 2010 + ci + ki, false)));
+      }
+    });
   });
 
-  // 3. generacija — Nikola je polubrat (po ocu) Miloševoj grani iz Draganovog prvog braka
-  const nikola = osoba({
-    first_name: 'Nikola', gender: 'M', birth_date: '1982-01-20', birth_place: 'Beograd',
-    father_id: dragan, mother_id: vesna,
+  // ── G5: najmlađa deca ──
+  g4couples.slice(0, 7).forEach((c, ci) => {
+    children(c, 1 + (ci % 2), 2012 + ci);
   });
-  const milos = osoba({
-    first_name: 'Miloš', gender: 'M', birth_date: '1986-10-05', birth_place: 'Niš',
-    father_id: dragan, mother_id: gordana,
-  });
-  const jelena = osoba({
-    first_name: 'Jelena', gender: 'F', birth_date: '1989-03-12', birth_place: 'Niš',
-    father_id: dragan, mother_id: gordana,
-  });
-  const djurdja = osoba({
-    first_name: 'Đurđa', gender: 'F', birth_date: '1993-08-27', birth_place: 'Niš',
-    father_id: dragan, mother_id: gordana,
-  });
-  const stefan = osoba({
-    first_name: 'Stefan', gender: 'M', birth_date: '1990-02-14', birth_place: 'Niš',
-    father_id: zoran, mother_id: jasmina,
-  });
-  const tamara = osoba({
-    first_name: 'Tamara', gender: 'F', birth_date: '1992-11-08', birth_place: 'Niš',
-    father_id: zoran, mother_id: jasmina,
-  });
-  void nikola; void milos; void jelena; void djurdja; void stefan; void tamara;
 
-  brak(milorad, stanislava, '1955-09-04');
-  brak(vukasin, milica, '1961-05-21');
-  brak(dragan, vesna, '1980-06-14', '1984-02-10', 'divorce'); // prvi brak → razvod
-  brak(dragan, gordana, '1985-10-19'); // ponovni brak
-  brak(zoran, jasmina, '1988-04-30');
+  // ── Razvod + ponovni brak: očuh / maćeha / pastorak ──
+  // Jedan krvni muškarac iz G3 imao je raniji (razvedeni) brak; ta žena ima sina
+  // iz još ranije veze → on je njegov pastorak, a on je sinu očuh; deca iz
+  // sadašnjeg braka tu ženu vide kao maćehu.
+  const ocuh = g3bloodMales[0]!;
+  const bivsaZena = P('F', 1962, null, null, { last_name: 'Đorđević', maiden_name: ns() });
+  brak(ocuh, bivsaZena, 1984, 1990, 'divorce');
+  const drugiOtac = P('M', 1958, null, null, { last_name: ns() });
+  P('M', 1982, drugiOtac, bivsaZena, { last_name: ns() }); // pastorak (sin bivše žene, nije krvni)
 })();
 
 const personCount = (db.prepare('SELECT COUNT(*) AS n FROM persons').get() as { n: number }).n;
