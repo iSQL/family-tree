@@ -12,6 +12,7 @@ import PersonFormPage from './routes/PersonForm';
 import TimelinePage from './routes/Timeline';
 import BirthdaysPage from './routes/Birthdays';
 import CalculatorPage from './routes/Calculator';
+import ConnectionPage from './routes/Connection';
 import GedcomPage from './routes/Gedcom';
 import SettingsPage from './routes/Settings';
 import NotFoundPage from './routes/NotFound';
@@ -59,6 +60,7 @@ export default function App() {
               <Route path="/timeline" element={<TimelinePage />} />
               <Route path="/birthdays" element={<BirthdaysPage />} />
               <Route path="/calculator" element={<CalculatorPage />} />
+              <Route path="/connection" element={<ConnectionPage />} />
               <Route path="/gedcom" element={<GedcomPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="*" element={<NotFoundPage />} />

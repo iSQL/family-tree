@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeftRight } from 'lucide-react';
+import { ArrowLeftRight, Waypoints } from 'lucide-react';
 import type { TreeResponse } from '@shared/types';
 import { describeKinship, type KinshipResult } from '@shared/kinship';
+import { hasConnectionView } from '@shared/kinship/connection';
 import { useTree } from '../hooks/useTree';
 import { RelativePicker } from '../components/person/RelativePicker';
 import { KinshipResultView } from '../components/kinship/KinshipResultView';
@@ -96,6 +97,18 @@ export default function CalculatorPage() {
         ) : (
           <Card className="p-5">
             <KinshipResultView result={result} tree={tree} onPathClick={(id) => navigate(`/?focus=${id}`)} />
+            {hasConnectionView(result) && (
+              <div className="mt-4">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => navigate(`/connection?a=${aId}&b=${bId}`)}
+                >
+                  <Waypoints size={14} aria-hidden="true" />
+                  {STR.kinship.showConnection}
+                </Button>
+              </div>
+            )}
           </Card>
         )}
       </div>

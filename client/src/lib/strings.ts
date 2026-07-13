@@ -218,6 +218,11 @@ export const STR = {
     selectSecond: 'Izaberite još jednu osobu.',
     openCalculator: 'Otvori kalkulator',
     clear: 'Očisti',
+    showConnection: 'Prikaži vezu',
+    connectionTitle: 'Veza srodstva',
+    connectionMissing: 'Izaberite dve osobe u kalkulatoru da biste prikazali vezu.',
+    connectionUnavailable: 'Za ovu vezu nema prikaza u stablu.',
+    backToCalculator: 'Nazad na kalkulator',
   },
 
   gedcom: {

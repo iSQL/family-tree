@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeftRight, Calculator, X } from 'lucide-react';
+import { ArrowLeftRight, Calculator, Waypoints, X } from 'lucide-react';
 import type { TreeResponse } from '@shared/types';
 import { describeKinship, type KinshipResult } from '@shared/kinship';
+import { hasConnectionView } from '@shared/kinship/connection';
 import { Avatar } from '../person/Avatar';
 import { KinshipResultView } from '../kinship/KinshipResultView';
 import { Button } from '../ui/Button';
@@ -111,10 +112,18 @@ export function KinshipPanel({ tree, selectedIds, onRemove, onSwap, onClear, onE
           {/* Akcije */}
           <div className="flex flex-wrap gap-2 pt-1">
             {result !== null && result !== 'error' && aId !== bId && (
-              <Button size="sm" variant="secondary" onClick={() => navigate(`/calculator?a=${aId}&b=${bId}`)}>
-                <Calculator size={14} aria-hidden="true" />
-                {STR.kinship.openCalculator}
-              </Button>
+              <>
+                {hasConnectionView(result) && (
+                  <Button size="sm" variant="secondary" onClick={() => navigate(`/connection?a=${aId}&b=${bId}`)}>
+                    <Waypoints size={14} aria-hidden="true" />
+                    {STR.kinship.showConnection}
+                  </Button>
+                )}
+                <Button size="sm" variant="secondary" onClick={() => navigate(`/calculator?a=${aId}&b=${bId}`)}>
+                  <Calculator size={14} aria-hidden="true" />
+                  {STR.kinship.openCalculator}
+                </Button>
+              </>
             )}
             {selectedIds.length > 0 && (
               <Button size="sm" variant="ghost" onClick={onClear}>
