@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Printer } from 'lucide-react';
 import type { TreeResponse } from '@shared/types';
-import { describeKinship, type KinshipResult } from '@shared/kinship';
+import { describeKinships, type KinshipResult } from '@shared/kinship';
 import { buildConnectionView } from '@shared/kinship/connection';
 import { useTree } from '../hooks/useTree';
 import { TreeCanvas } from '../components/tree/TreeCanvas';
@@ -10,9 +10,9 @@ import { Button } from '../components/ui/Button';
 import { FullScreenSpinner } from '../components/ui/Spinner';
 import { STR } from '../lib/strings';
 
-function safeKinship(tree: TreeResponse, fromId: number, toId: number): KinshipResult | 'error' {
+function safeKinships(tree: TreeResponse, fromId: number, toId: number): KinshipResult[] | 'error' {
   try {
-    return describeKinship(tree, fromId, toId);
+    return describeKinships(tree, fromId, toId);
   } catch {
     return 'error';
   }
@@ -31,11 +31,17 @@ export default function ConnectionPage() {
   const [searchParams] = useSearchParams();
   const aId = parseIdParam(searchParams.get('a'));
   const bId = parseIdParam(searchParams.get('b'));
+  const lineParam = Number(searchParams.get('line'));
 
-  const result = useMemo(() => {
+  const results = useMemo(() => {
     if (!tree || aId === null || bId === null || aId === bId) return null;
-    return safeKinship(tree, aId, bId);
+    return safeKinships(tree, aId, bId);
   }, [tree, aId, bId]);
+
+  // Izabrana linija (dvostruko srodstvo) — indeks iz URL-a, ograničen na opseg.
+  const lines = results !== null && results !== 'error' ? results : [];
+  const lineIndex = Number.isInteger(lineParam) && lineParam >= 0 && lineParam < lines.length ? lineParam : 0;
+  const result = results === null || results === 'error' ? results : (lines[lineIndex] ?? null);
 
   const view = useMemo(() => {
     if (!tree || result === null || result === 'error') return null;
@@ -77,30 +83,53 @@ export default function ConnectionPage() {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {/* Zaglavlje: povratak + termin + rečenica */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-stone-200 bg-white px-3 py-2 dark:border-stone-700 dark:bg-stone-800">
-        <Link
-          to={backHref}
-          className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-stone-600 hover:bg-stone-200/70 hover:text-stone-900 dark:text-stone-300 dark:hover:bg-stone-700 dark:hover:text-stone-100"
-        >
-          <ArrowLeft size={16} aria-hidden="true" />
-          <span className="hidden sm:inline">{STR.kinship.backToCalculator}</span>
-        </Link>
-        {result.term !== null && (
-          <span className="rounded-full bg-amber-600 px-3 py-1 text-sm font-semibold text-white">
-            {result.term}
-          </span>
+      <div className="flex flex-col gap-1.5 border-b border-stone-200 bg-white px-3 py-2 dark:border-stone-700 dark:bg-stone-800">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <Link
+            to={backHref}
+            className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-stone-600 hover:bg-stone-200/70 hover:text-stone-900 dark:text-stone-300 dark:hover:bg-stone-700 dark:hover:text-stone-100"
+          >
+            <ArrowLeft size={16} aria-hidden="true" />
+            <span className="hidden sm:inline">{STR.kinship.backToCalculator}</span>
+          </Link>
+          {result.term !== null && (
+            <span className="rounded-full bg-amber-600 px-3 py-1 text-sm font-semibold text-white">
+              {result.term}
+            </span>
+          )}
+          <p className="min-w-0 flex-1 truncate text-sm font-medium" title={result.description}>
+            {result.description}
+          </p>
+          <Link
+            to={`/settings/poster?scope=kinship&a=${aId}&b=${bId}&line=${lineIndex}`}
+            className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-stone-600 hover:bg-stone-200/70 hover:text-stone-900 dark:text-stone-300 dark:hover:bg-stone-700 dark:hover:text-stone-100"
+            title={STR.poster.title}
+          >
+            <Printer size={16} aria-hidden="true" />
+            <span className="hidden sm:inline">{STR.poster.posterButton}</span>
+          </Link>
+        </div>
+
+        {/* Prebacivanje linija (dvostruko/višestruko srodstvo) */}
+        {lines.length > 1 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs text-stone-400">{STR.kinship.multiNote}</span>
+            {lines.map((ln, i) => (
+              <Link
+                key={i}
+                to={`/connection?a=${aId}&b=${bId}&line=${i}`}
+                className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+                  i === lineIndex
+                    ? 'border-amber-500 bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300'
+                    : 'border-stone-300 text-stone-600 hover:bg-stone-100 dark:border-stone-600 dark:text-stone-300 dark:hover:bg-stone-700'
+                }`}
+                title={ln.viaLabel ? `${STR.kinship.via} ${ln.viaLabel}` : undefined}
+              >
+                {i + 1}. {ln.term ?? STR.kinship.lineWord}
+              </Link>
+            ))}
+          </div>
         )}
-        <p className="min-w-0 flex-1 truncate text-sm font-medium" title={result.description}>
-          {result.description}
-        </p>
-        <Link
-          to={`/settings/poster?scope=kinship&a=${aId}&b=${bId}`}
-          className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-stone-600 hover:bg-stone-200/70 hover:text-stone-900 dark:text-stone-300 dark:hover:bg-stone-700 dark:hover:text-stone-100"
-          title={STR.poster.title}
-        >
-          <Printer size={16} aria-hidden="true" />
-          <span className="hidden sm:inline">{STR.poster.posterButton}</span>
-        </Link>
       </div>
 
       <div className="relative min-h-0 flex-1 overflow-hidden">

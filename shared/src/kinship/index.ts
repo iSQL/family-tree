@@ -12,7 +12,7 @@
  */
 import type { Gender, PersonSlim, TreeResponse } from '../types';
 import { buildKinGraph, type KinGraph } from './graph';
-import { findKinPath } from './resolve';
+import { findKinPath, findBloodLines, type KinPath } from './resolve';
 import { resolveTerm, type TermGender } from './terms';
 
 export interface KinshipResult {
@@ -35,6 +35,11 @@ export interface KinshipResult {
    * uzlazne/silazne veze poklapa se sa krajem/početkom (B odn. A je sam predak).
    */
   apexIndex: number | null;
+  /**
+   * Oznaka zajedničkog pretka linije ('Marisav Mićić i Stanka Mićić') — postavljena
+   * samo kad describeKinships vrati VIŠE linija, radi njihovog razlikovanja u UI-ju.
+   */
+  viaLabel?: string;
 }
 
 /** Česta imena sa nepostojanim a ('Petar' → 'Petrov'). */
@@ -144,9 +149,48 @@ function detectPrija(graph: KinGraph, aId: number, bId: number): PrijaMatch | nu
   return null;
 }
 
-/** Glavni API — čist, bez I/O; radi nad TreeResponse kešom na klijentu, testira se na serveru. */
-export function describeKinship(tree: TreeResponse, fromId: number, toId: number): KinshipResult {
-  const graph = buildKinGraph(tree);
+/** Formatira jednu pronađenu putanju (kp) u KinshipResult (termin ili kompozicioni opis). */
+function buildResult(graph: KinGraph, kp: KinPath, a: PersonSlim, b: PersonSlim): KinshipResult {
+  const aName = a.first_name || `#${a.id}`;
+  const bName = b.first_name || `#${b.id}`;
+
+  const hasSpouseEdge = kp.spouseAtA !== null || kp.spouseAtB !== null;
+  const degree = hasSpouseEdge ? null : kp.stepsUp + kp.stepsDown;
+  // Prevoj (zajednički predak) je na kraju uzlaznog dela: opciona supružnička ivica
+  // na A strani gura sve za jedno mesto udesno.
+  const apexIndex = (kp.spouseAtA !== null ? 1 : 0) + kp.stepsUp;
+  const former = (kp.spouseAtA?.former ?? false) || (kp.spouseAtB?.former ?? false);
+  const formerSuffix = former ? ' (bivši)' : '';
+
+  const resolved = resolveTerm(graph, kp, a, b);
+  if (resolved.term !== null) {
+    const detailPart = resolved.detail !== null ? ` ${resolved.detail}` : '';
+    return {
+      related: true,
+      term: resolved.term,
+      description: `${bName} je ${possessive(aName, resolved.gender)} ${resolved.term}${detailPart}${formerSuffix}.`,
+      path: kp.path,
+      degree,
+      apexIndex,
+    };
+  }
+
+  // nepokrivena putanja → kompozicioni opis (+ koleno za čisto krvne putanje)
+  const chain = composeChain(graph, kp.path);
+  const cousinWord = b.gender === 'M' ? 'rođak' : b.gender === 'F' ? 'rođaka' : 'rođak/rođaka';
+  const degreePart = degree !== null ? ` (${cousinWord} u ${degree}. kolenu)` : '';
+  return {
+    related: true,
+    term: null,
+    description: `${bName} je ${chain} osobe ${aName}${formerSuffix}${degreePart}.`,
+    path: kp.path,
+    degree,
+    apexIndex,
+  };
+}
+
+/** Najbliža veza A→B nad već izgrađenim grafom (uklj. tazbinu i prija). */
+function describeWithGraph(graph: KinGraph, fromId: number, toId: number): KinshipResult {
   const a = graph.persons.get(fromId);
   const b = graph.persons.get(toId);
   if (a === undefined || b === undefined) return UNRELATED;
@@ -175,38 +219,58 @@ export function describeKinship(tree: TreeResponse, fromId: number, toId: number
     return UNRELATED;
   }
 
-  const hasSpouseEdge = kp.spouseAtA !== null || kp.spouseAtB !== null;
-  const degree = hasSpouseEdge ? null : kp.stepsUp + kp.stepsDown;
-  // Prevoj (zajednički predak) je na kraju uzlaznog dela: opciona supružnička ivica
-  // na A strani gura sve za jedno mesto udesno.
-  const apexIndex = (kp.spouseAtA !== null ? 1 : 0) + kp.stepsUp;
-  const former = (kp.spouseAtA?.former ?? false) || (kp.spouseAtB?.former ?? false);
-  const formerSuffix = former ? ' (bivši)' : '';
+  return buildResult(graph, kp, a, b);
+}
 
-  const resolved = resolveTerm(graph, kp, a, b);
+/** Glavni API — čist, bez I/O; radi nad TreeResponse kešom na klijentu, testira se na serveru. */
+export function describeKinship(tree: TreeResponse, fromId: number, toId: number): KinshipResult {
+  return describeWithGraph(buildKinGraph(tree), fromId, toId);
+}
 
-  if (resolved.term !== null) {
-    const detailPart = resolved.detail !== null ? ` ${resolved.detail}` : '';
-    return {
-      related: true,
-      term: resolved.term,
-      description: `${bName} je ${possessive(aName, resolved.gender)} ${resolved.term}${detailPart}${formerSuffix}.`,
-      path: kp.path,
-      degree,
-      apexIndex,
-    };
+/** Nazivi zajedničkih predaka linije, npr. 'Marisav Mićić i Stanka Mićić' (za viaLabel). */
+function apexNames(graph: KinGraph, apexIds: number[]): string {
+  return apexIds
+    .map((id) => {
+      const p = graph.persons.get(id);
+      return p ? `${p.first_name} ${p.last_name}`.trim() || `#${id}` : `#${id}`;
+    })
+    .join(' i ');
+}
+
+/**
+ * Sve NEZAVISNE veze A→B, najbliža prva, najviše `limit` (podrazumevano 3). Prva linija
+ * je uvek jednaka describeKinship (uklj. tazbinu); dodatne su dalje nezavisne KRVNE
+ * linije — za dvostruko/višestruko srodstvo (npr. isti par u srodstvu i po dedi i po babi).
+ * Kad postoji samo jedna veza, vraća niz sa jednim elementom (bez viaLabel-a).
+ */
+export function describeKinships(tree: TreeResponse, fromId: number, toId: number, limit = 3): KinshipResult[] {
+  const graph = buildKinGraph(tree);
+  const primary = describeWithGraph(graph, fromId, toId);
+  if (!primary.related || fromId === toId) return [primary];
+
+  const a = graph.persons.get(fromId);
+  const b = graph.persons.get(toId);
+  if (a === undefined || b === undefined) return [primary];
+
+  const bloodLines = findBloodLines(graph, fromId, toId, limit + 1);
+  if (bloodLines.length <= 1) return [primary];
+
+  // Apex primarne veze (samo ako je krvna) — da tu liniju ne dupliramo.
+  const primaryApex =
+    primary.degree !== null && primary.apexIndex !== null ? (primary.path[primary.apexIndex] ?? null) : null;
+  const primaryGroup = primaryApex !== null ? bloodLines.find((l) => l.apexIds.includes(primaryApex)) : undefined;
+
+  const out: { result: KinshipResult; apexIds: number[] }[] = [
+    { result: primary, apexIds: primaryGroup?.apexIds ?? [] },
+  ];
+  for (const line of bloodLines) {
+    if (out.length >= limit) break;
+    if (primaryApex !== null && line.apexIds.includes(primaryApex)) continue; // već je primarna
+    out.push({ result: buildResult(graph, line.kp, a, b), apexIds: line.apexIds });
   }
 
-  // nepokrivena putanja → kompozicioni opis (+ koleno za čisto krvne putanje)
-  const chain = composeChain(graph, kp.path);
-  const cousinWord = b.gender === 'M' ? 'rođak' : b.gender === 'F' ? 'rođaka' : 'rođak/rođaka';
-  const degreePart = degree !== null ? ` (${cousinWord} u ${degree}. kolenu)` : '';
-  return {
-    related: true,
-    term: null,
-    description: `${bName} je ${chain} osobe ${aName}${formerSuffix}${degreePart}.`,
-    path: kp.path,
-    degree,
-    apexIndex,
-  };
+  if (out.length === 1) return [primary];
+  return out.map(({ result, apexIds }) =>
+    apexIds.length > 0 ? { ...result, viaLabel: apexNames(graph, apexIds) } : result,
+  );
 }

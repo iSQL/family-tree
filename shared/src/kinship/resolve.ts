@@ -37,7 +37,7 @@ interface AncEntry {
 }
 
 /** BFS naviše: svi preci (uklj. polaznu osobu) sa dubinom i pokazivačem ka detetu. */
-function ancestorMap(graph: KinGraph, startId: number): Map<number, AncEntry> {
+export function ancestorMap(graph: KinGraph, startId: number): Map<number, AncEntry> {
   const map = new Map<number, AncEntry>([[startId, { depth: 0, child: null }]]);
   const queue = [startId];
   for (let i = 0; i < queue.length; i++) {
@@ -146,4 +146,102 @@ export function findKinPath(graph: KinGraph, fromId: number, toId: number): KinP
     }
   }
   return best;
+}
+
+/** Jedna nezavisna krvna linija: putanja + zajednički predak(ci) na prevoju. */
+export interface BloodLine {
+  kp: KinPath;
+  /** ID-jevi zajedničkih predaka na prevoju (par → oba člana; inače jedan). Za „preko X". */
+  apexIds: number[];
+}
+
+/**
+ * Sve NEZAVISNE krvne veze A↔B, najbliža prva, najviše `limit`. Nezavisna linija =
+ * najbliži zajednički predak (MRCA — čije nijedno dete nije takođe zajednički predak);
+ * bračni par predaka (ko-roditelji/supružnici) broji se kao JEDNA linija. Za razliku
+ * od findKinPath (samo najkraća), ovo služi prikazu dvostrukog/višestrukog srodstva.
+ * Ne uključuje tazbinske (supružničke) veze — samo krvne.
+ */
+export function findBloodLines(graph: KinGraph, fromId: number, toId: number, limit: number): BloodLine[] {
+  if (!graph.persons.has(fromId) || !graph.persons.has(toId) || fromId === toId) return [];
+  const ax = ancestorMap(graph, fromId);
+  const ay = ancestorMap(graph, toId);
+
+  const common = new Set<number>();
+  for (const id of ax.keys()) if (ay.has(id)) common.add(id);
+  if (common.size === 0) return [];
+
+  // MRCA: zajednički predak čije NIJEDNO dete nije takođe zajednički predak.
+  const isMrca = (id: number): boolean => {
+    for (const childId of graph.childrenOf.get(id) ?? []) if (common.has(childId)) return false;
+    return true;
+  };
+  const mrcas = [...common].filter(isMrca);
+
+  // Grupiši u jednu vezu MRCA-e koji su supružnici ili ko-roditelji (isti par predaka).
+  const groups: number[][] = [];
+  const seen = new Set<number>();
+  for (const id of mrcas) {
+    if (seen.has(id)) continue;
+    const group = [id];
+    seen.add(id);
+    const spouses = new Set((graph.spousesOf.get(id) ?? []).map((e) => e.spouseId));
+    const children = graph.childrenOf.get(id) ?? [];
+    for (const other of mrcas) {
+      if (seen.has(other)) continue;
+      const coParent = children.some((c) => {
+        const p = graph.persons.get(c)!;
+        return p.father_id === other || p.mother_id === other;
+      });
+      if (spouses.has(other) || coParent) {
+        group.push(other);
+        seen.add(other);
+      }
+    }
+    groups.push(group);
+  }
+
+  const fromPerson = graph.persons.get(fromId)!;
+  const lines: { kp: KinPath; apexIds: number[]; cost: number }[] = [];
+  for (const group of groups) {
+    // Reprezentativni predak grupe: najmanji up+down (obično isti za par), pa najmanji id.
+    let apex = group[0]!;
+    let apexCost = ax.get(apex)!.depth + ay.get(apex)!.depth;
+    for (const cand of group) {
+      const cost = ax.get(cand)!.depth + ay.get(cand)!.depth;
+      if (cost < apexCost || (cost === apexCost && cand < apex)) {
+        apex = cand;
+        apexCost = cost;
+      }
+    }
+    const up = ax.get(apex)!.depth;
+    const down = ay.get(apex)!.depth;
+
+    // Rekonstrukcija putanje kroz `apex`: [from .. apex .. to].
+    const nodes: number[] = [];
+    let cur: number | null = apex;
+    while (cur !== null) {
+      nodes.push(cur);
+      cur = ax.get(cur)!.child;
+    }
+    nodes.reverse();
+    let curDown: number | null = ay.get(apex)!.child;
+    while (curDown !== null) {
+      nodes.push(curDown);
+      curDown = ay.get(curDown)!.child;
+    }
+    if (new Set(nodes).size !== nodes.length) continue; // degenerisano (ista osoba dvaput)
+
+    let firstUpLine: ParentLine | null = null;
+    if (up > 0) firstUpLine = nodes[1] === fromPerson.father_id ? 'father' : 'mother';
+
+    lines.push({
+      kp: { stepsUp: up, stepsDown: down, firstUpLine, spouseAtA: null, spouseAtB: null, path: nodes },
+      apexIds: group,
+      cost: apexCost,
+    });
+  }
+
+  lines.sort((a, b) => a.cost - b.cost || a.kp.path.length - b.kp.path.length || a.apexIds[0]! - b.apexIds[0]!);
+  return lines.slice(0, limit).map(({ kp, apexIds }) => ({ kp, apexIds }));
 }

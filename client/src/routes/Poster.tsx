@@ -16,7 +16,7 @@ import { chooserFamilies, familyMemberIds, filterTreeToFamily } from '@shared/fa
 import { posterSubtree, type PosterScope } from '@shared/posterScope';
 import { comparePartialDates } from '@shared/partialDate';
 import { maxDescendantDepth, resolveProgenyDepth } from '@shared/treeView';
-import { describeKinship, type KinshipResult } from '@shared/kinship';
+import { describeKinships, type KinshipResult } from '@shared/kinship';
 import { buildConnectionView } from '@shared/kinship/connection';
 import { useTree } from '../hooks/useTree';
 import { TreeCanvas } from '../components/tree/TreeCanvas';
@@ -74,11 +74,11 @@ function parseIdParam(value: string | null, tree: TreeResponse): number | null {
   return Number.isInteger(n) && tree.persons.some((p) => p.id === n) ? n : null;
 }
 
-function safeKinship(tree: TreeResponse, fromId: number, toId: number): KinshipResult | null {
+function safeKinships(tree: TreeResponse, fromId: number, toId: number): KinshipResult[] {
   try {
-    return describeKinship(tree, fromId, toId);
+    return describeKinships(tree, fromId, toId);
   } catch {
-    return null;
+    return [];
   }
 }
 
@@ -260,9 +260,12 @@ function PosterPageInner({ tree }: { tree: TreeResponse }) {
   // Obim 'selected': izabrane osobe + režim pregleda (izbor / finalni poster).
   const [selection, setSelection] = useState<ReadonlySet<number>>(new Set());
   const [pickMode, setPickMode] = useState(true);
-  // Obim 'kinship': dve osobe (iz kalkulatora preko ?a/?b, ili izbor ovde).
+  // Obim 'kinship': dve osobe (iz kalkulatora preko ?a/?b, ili izbor ovde) + izabrana
+  // linija srodstva (dvostruko/višestruko srodstvo; ?line=).
   const [kinA, setKinA] = useState<number | null>(parseIdParam(searchParams.get('a'), tree));
   const [kinB, setKinB] = useState<number | null>(parseIdParam(searchParams.get('b'), tree));
+  const initialLine = Number(searchParams.get('line'));
+  const [kinLine, setKinLine] = useState<number>(Number.isInteger(initialLine) && initialLine >= 0 ? initialLine : 0);
 
   // Aktivna porodica: eksplicitan izbor > porodica fokusirane osobe > prva.
   const repId = useMemo(() => {
@@ -300,13 +303,19 @@ function PosterPageInner({ tree }: { tree: TreeResponse }) {
     maxProgeny,
   );
 
-  // 'kinship': veza srodstva → podskup + prevoj kao glavna osoba.
-  const connView = useMemo(() => {
-    if (scope !== 'kinship' || kinA === null || kinB === null || kinA === kinB) return null;
-    const result = safeKinship(tree, kinA, kinB);
-    if (result === null) return null;
-    return buildConnectionView(tree, result);
+  // 'kinship': sve nezavisne linije srodstva (dvostruko/višestruko).
+  const kinLines = useMemo(() => {
+    if (scope !== 'kinship' || kinA === null || kinB === null || kinA === kinB) return [];
+    return safeKinships(tree, kinA, kinB);
   }, [scope, tree, kinA, kinB]);
+  // Izabrana linija, ograničena na opseg.
+  const lineIndex = kinLine >= 0 && kinLine < kinLines.length ? kinLine : 0;
+  // Veza srodstva izabrane linije → podskup + prevoj kao glavna osoba.
+  const connView = useMemo(() => {
+    const result = kinLines[lineIndex];
+    if (result === undefined) return null;
+    return buildConnectionView(tree, result);
+  }, [tree, kinLines, lineIndex]);
 
   // Loza (za 'view'/'lineage' i kao osnova za biranje čvorova kod 'selected').
   const lineageTree = useMemo(
@@ -502,7 +511,13 @@ function PosterPageInner({ tree }: { tree: TreeResponse }) {
               <div className="space-y-2">
                 <label className="block text-sm">
                   <FieldLabel>{STR.kinship.personA}</FieldLabel>
-                  <Select value={kinA ?? ''} onChange={(e) => setKinA(e.target.value === '' ? null : Number(e.target.value))}>
+                  <Select
+                    value={kinA ?? ''}
+                    onChange={(e) => {
+                      setKinA(e.target.value === '' ? null : Number(e.target.value));
+                      setKinLine(0);
+                    }}
+                  >
                     <option value="">{STR.common.none}</option>
                     {allSorted.map((p) => (
                       <option key={p.id} value={p.id}>
@@ -513,7 +528,13 @@ function PosterPageInner({ tree }: { tree: TreeResponse }) {
                 </label>
                 <label className="block text-sm">
                   <FieldLabel>{STR.kinship.personB}</FieldLabel>
-                  <Select value={kinB ?? ''} onChange={(e) => setKinB(e.target.value === '' ? null : Number(e.target.value))}>
+                  <Select
+                    value={kinB ?? ''}
+                    onChange={(e) => {
+                      setKinB(e.target.value === '' ? null : Number(e.target.value));
+                      setKinLine(0);
+                    }}
+                  >
                     <option value="">{STR.common.none}</option>
                     {allSorted.map((p) => (
                       <option key={p.id} value={p.id}>
@@ -522,6 +543,20 @@ function PosterPageInner({ tree }: { tree: TreeResponse }) {
                     ))}
                   </Select>
                 </label>
+                {/* Dvostruko/višestruko srodstvo → izbor koje linije da se izvozi. */}
+                {kinLines.length > 1 && (
+                  <label className="block text-sm">
+                    <FieldLabel>{STR.poster.kinshipLineLabel}</FieldLabel>
+                    <Select value={lineIndex} onChange={(e) => setKinLine(Number(e.target.value))}>
+                      {kinLines.map((ln, i) => (
+                        <option key={i} value={i}>
+                          {i + 1}. {ln.term ?? STR.kinship.lineWord}
+                          {ln.viaLabel ? ` — ${STR.kinship.via} ${ln.viaLabel}` : ''}
+                        </option>
+                      ))}
+                    </Select>
+                  </label>
+                )}
               </div>
             )}
 

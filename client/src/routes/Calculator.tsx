@@ -1,21 +1,20 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeftRight, Waypoints } from 'lucide-react';
+import { ArrowLeftRight } from 'lucide-react';
 import type { TreeResponse } from '@shared/types';
-import { describeKinship, type KinshipResult } from '@shared/kinship';
-import { hasConnectionView } from '@shared/kinship/connection';
+import { describeKinships, type KinshipResult } from '@shared/kinship';
 import { useTree } from '../hooks/useTree';
 import { RelativePicker } from '../components/person/RelativePicker';
-import { KinshipResultView } from '../components/kinship/KinshipResultView';
+import { KinshipResults } from '../components/kinship/KinshipResults';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Field } from '../components/ui/Input';
 import { FullScreenSpinner } from '../components/ui/Spinner';
 import { STR } from '../lib/strings';
 
-function safeKinship(tree: TreeResponse, fromId: number, toId: number): KinshipResult | 'error' {
+function safeKinships(tree: TreeResponse, fromId: number, toId: number): KinshipResult[] | 'error' {
   try {
-    return describeKinship(tree, fromId, toId);
+    return describeKinships(tree, fromId, toId);
   } catch {
     return 'error';
   }
@@ -34,9 +33,9 @@ export default function CalculatorPage() {
   const [aId, setAId] = useState<number | null>(() => parseIdParam(searchParams.get('a')));
   const [bId, setBId] = useState<number | null>(() => parseIdParam(searchParams.get('b')));
 
-  const result = useMemo(() => {
+  const results = useMemo(() => {
     if (!tree || aId === null || bId === null || aId === bId) return null;
-    return safeKinship(tree, aId, bId);
+    return safeKinships(tree, aId, bId);
   }, [tree, aId, bId]);
 
   if (isPending) return <FullScreenSpinner />;
@@ -90,25 +89,18 @@ export default function CalculatorPage() {
 
         {aId !== null && bId !== null && aId === bId ? (
           <p className="px-1 text-sm text-stone-500 dark:text-stone-400">{STR.kinship.samePerson}</p>
-        ) : result === null ? (
+        ) : results === null ? (
           <p className="px-1 text-sm text-stone-500 dark:text-stone-400">{STR.kinship.pickBoth}</p>
-        ) : result === 'error' ? (
+        ) : results === 'error' ? (
           <p className="px-1 text-sm text-red-600 dark:text-red-400">{STR.kinship.error}</p>
         ) : (
           <Card className="p-5">
-            <KinshipResultView result={result} tree={tree} onPathClick={(id) => navigate(`/?focus=${id}`)} />
-            {hasConnectionView(result) && (
-              <div className="mt-4">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => navigate(`/connection?a=${aId}&b=${bId}`)}
-                >
-                  <Waypoints size={14} aria-hidden="true" />
-                  {STR.kinship.showConnection}
-                </Button>
-              </div>
-            )}
+            <KinshipResults
+              results={results}
+              tree={tree}
+              onPathClick={(id) => navigate(`/?focus=${id}`)}
+              onShowConnection={(line) => navigate(`/connection?a=${aId}&b=${bId}&line=${line}`)}
+            />
           </Card>
         )}
       </div>

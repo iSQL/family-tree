@@ -218,6 +218,7 @@ export const STR = {
     clearSelection: 'Očisti izbor',
     kinshipMissing: 'Izaberite dve različite osobe da biste dobili vezu srodstva.',
     kinshipUnavailable: 'Za ovu vezu nema prikaza u stablu.',
+    kinshipLineLabel: 'Linija srodstva',
     legendSelected: 'Izabrano',
     legendKinship: 'Veza srodstva',
     posterButton: 'Poster',
@@ -295,6 +296,10 @@ export const STR = {
     connectionMissing: 'Izaberite dve osobe u kalkulatoru da biste prikazali vezu.',
     connectionUnavailable: 'Za ovu vezu nema prikaza u stablu.',
     backToCalculator: 'Nazad na kalkulator',
+    /** Dvostruko/višestruko srodstvo. */
+    multiNote: 'U srodstvu su po više linija — izaberite koju vezu da prikažete.',
+    lineWord: 'linija',
+    via: 'preko',
   },
 
   gedcom: {

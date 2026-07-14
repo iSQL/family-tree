@@ -1,17 +1,16 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeftRight, Calculator, Waypoints, X } from 'lucide-react';
+import { ArrowLeftRight, Calculator, X } from 'lucide-react';
 import type { TreeResponse } from '@shared/types';
-import { describeKinship, type KinshipResult } from '@shared/kinship';
-import { hasConnectionView } from '@shared/kinship/connection';
+import { describeKinships, type KinshipResult } from '@shared/kinship';
 import { Avatar } from '../person/Avatar';
-import { KinshipResultView } from '../kinship/KinshipResultView';
+import { KinshipResults } from '../kinship/KinshipResults';
 import { Button } from '../ui/Button';
 import { STR } from '../../lib/strings';
 
-function safeKinship(tree: TreeResponse, fromId: number, toId: number): KinshipResult | 'error' {
+function safeKinships(tree: TreeResponse, fromId: number, toId: number): KinshipResult[] | 'error' {
   try {
-    return describeKinship(tree, fromId, toId);
+    return describeKinships(tree, fromId, toId);
   } catch {
     return 'error';
   }
@@ -37,9 +36,9 @@ export function KinshipPanel({ tree, selectedIds, onRemove, onSwap, onClear, onE
   const byId = useMemo(() => new Map(tree.persons.map((p) => [p.id, p])), [tree]);
 
   const [aId, bId] = selectedIds;
-  const result = useMemo(() => {
+  const results = useMemo(() => {
     if (aId === undefined || bId === undefined || aId === bId) return null;
-    return safeKinship(tree, aId, bId);
+    return safeKinships(tree, aId, bId);
   }, [tree, aId, bId]);
 
   return (
@@ -103,27 +102,24 @@ export function KinshipPanel({ tree, selectedIds, onRemove, onSwap, onClear, onE
             <p className="text-sm text-stone-500 dark:text-stone-400">{STR.kinship.selectSecond}</p>
           ) : aId === bId ? (
             <p className="text-sm text-stone-500 dark:text-stone-400">{STR.kinship.samePerson}</p>
-          ) : result === 'error' || result === null ? (
+          ) : results === 'error' || results === null ? (
             <p className="text-sm text-red-600 dark:text-red-400">{STR.kinship.error}</p>
           ) : (
-            <KinshipResultView result={result} tree={tree} onPathClick={(id) => navigate(`/?focus=${id}`)} />
+            <KinshipResults
+              results={results}
+              tree={tree}
+              onPathClick={(id) => navigate(`/?focus=${id}`)}
+              onShowConnection={(line) => navigate(`/connection?a=${aId}&b=${bId}&line=${line}`)}
+            />
           )}
 
           {/* Akcije */}
           <div className="flex flex-wrap gap-2 pt-1">
-            {result !== null && result !== 'error' && aId !== bId && (
-              <>
-                {hasConnectionView(result) && (
-                  <Button size="sm" variant="secondary" onClick={() => navigate(`/connection?a=${aId}&b=${bId}`)}>
-                    <Waypoints size={14} aria-hidden="true" />
-                    {STR.kinship.showConnection}
-                  </Button>
-                )}
-                <Button size="sm" variant="secondary" onClick={() => navigate(`/calculator?a=${aId}&b=${bId}`)}>
-                  <Calculator size={14} aria-hidden="true" />
-                  {STR.kinship.openCalculator}
-                </Button>
-              </>
+            {results !== null && results !== 'error' && aId !== bId && (
+              <Button size="sm" variant="secondary" onClick={() => navigate(`/calculator?a=${aId}&b=${bId}`)}>
+                <Calculator size={14} aria-hidden="true" />
+                {STR.kinship.openCalculator}
+              </Button>
             )}
             {selectedIds.length > 0 && (
               <Button size="sm" variant="ghost" onClick={onClear}>
