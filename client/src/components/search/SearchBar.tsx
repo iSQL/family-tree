@@ -69,7 +69,7 @@ export function SearchBar() {
       <Search
         size={16}
         aria-hidden="true"
-        className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-stone-400"
+        className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-faint"
       />
       <input
         ref={inputRef}
@@ -87,12 +87,12 @@ export function SearchBar() {
         onFocus={() => setOpen(true)}
         onBlur={() => window.setTimeout(() => setOpen(false), 150)}
         onKeyDown={onKeyDown}
-        className="w-full rounded-lg border border-stone-300 bg-stone-50 py-2 pr-3 pl-8 text-sm outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-600/30 sm:py-1.5 dark:border-stone-600 dark:bg-stone-800"
+        className="w-full rounded-[9px] border border-line bg-bg py-2 pr-3 pl-8 text-base text-ink placeholder:text-faint outline-none focus:border-gold focus:ring-2 focus:ring-gold/30 sm:py-1.5"
       />
       {open && query.trim() !== '' && (
-        <ul className="absolute top-full right-0 left-0 z-40 mt-1 max-h-80 overflow-y-auto rounded-lg border border-stone-200 bg-white py-1 shadow-lg dark:border-stone-700 dark:bg-stone-900">
+        <ul className="absolute top-full right-0 left-0 z-40 mt-1 max-h-80 overflow-y-auto rounded-xl border border-line bg-surface py-1 shadow-[0_16px_40px_-16px_rgba(20,30,50,.45)]">
           {results.length === 0 ? (
-            <li className="px-3 py-2 text-sm text-stone-500 dark:text-stone-400">{STR.search.noResults}</li>
+            <li className="px-3 py-2 text-sm text-muted">{STR.search.noResults}</li>
           ) : (
             results.map((p, i) => {
               const years = formatLifespan(p.birth_date, p.death_date);
@@ -106,7 +106,7 @@ export function SearchBar() {
                     }}
                     onMouseEnter={() => setActiveIndex(i)}
                     className={`flex w-full cursor-pointer items-center gap-2.5 px-3 py-1.5 text-left text-sm ${
-                      i === activeIndex ? 'bg-amber-100 dark:bg-amber-950' : ''
+                      i === activeIndex ? 'bg-activebg' : ''
                     }`}
                   >
                     <Avatar person={p} size={28} />
@@ -115,7 +115,7 @@ export function SearchBar() {
                         {p.first_name} {p.last_name}
                       </span>
                       {years && (
-                        <span className="block text-xs text-stone-500 dark:text-stone-400">{years}</span>
+                        <span className="block text-xs text-muted">{years}</span>
                       )}
                     </span>
                   </button>

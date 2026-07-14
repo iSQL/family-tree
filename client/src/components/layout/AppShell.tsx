@@ -4,7 +4,6 @@ import {
   HeartHandshake,
   History,
   Settings,
-  TreeDeciduous,
   Users,
   type LucideIcon,
 } from 'lucide-react';
@@ -12,6 +11,7 @@ import { OfflineBanner } from './OfflineBanner';
 import { ReadonlyBanner } from './ReadonlyBanner';
 import { SearchBar } from '../search/SearchBar';
 import { STR } from '../../lib/strings';
+import logoUrl from '../../assets/zabari-logo.svg';
 
 interface NavItem {
   to: string;
@@ -28,16 +28,14 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 function desktopLinkClass({ isActive }: { isActive: boolean }): string {
-  return `flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors ${
-    isActive
-      ? 'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300'
-      : 'text-stone-600 hover:bg-stone-200/70 dark:text-stone-300 dark:hover:bg-stone-800'
+  return `zb-label flex items-center gap-1.5 rounded-[9px] px-2.5 py-1.5 text-xs transition-colors ${
+    isActive ? 'bg-activebg text-activefg' : 'text-muted hover:bg-surface2'
   }`;
 }
 
 function mobileLinkClass({ isActive }: { isActive: boolean }): string {
-  return `flex min-w-0 flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium ${
-    isActive ? 'text-amber-700 dark:text-amber-400' : 'text-stone-500 dark:text-stone-400'
+  return `zb-label flex min-w-0 flex-1 flex-col items-center gap-0.5 py-2 text-[10px] tracking-[.02em] ${
+    isActive ? 'text-activefg' : 'text-faint'
   }`;
 }
 
@@ -58,10 +56,10 @@ export function AppShell() {
       <ReadonlyBanner />
 
       {/* Desktop top bar */}
-      <header className="hidden items-center gap-4 border-b border-stone-200 bg-white px-4 py-2 md:flex dark:border-stone-700 dark:bg-stone-900">
-        <NavLink to="/" className="flex items-center gap-2 text-base font-bold text-amber-800 dark:text-amber-400">
-          <TreeDeciduous size={22} aria-hidden="true" />
-          {STR.appName}
+      <header className="hidden items-center gap-4 border-b border-line bg-surface px-4 py-2 md:flex">
+        <NavLink to="/" className="flex items-center gap-2.5">
+          <img src={logoUrl} alt="" width={30} height={30} className="rounded-full" aria-hidden="true" />
+          <span className="font-display text-lg text-heading">{STR.appName}</span>
         </NavLink>
         <div className="max-w-xs flex-1">
           <SearchBar />
@@ -77,9 +75,9 @@ export function AppShell() {
       </header>
 
       {/* Mobilni top bar: naslov + pretraga */}
-      <header className="flex items-center gap-3 border-b border-stone-200 bg-white px-3 py-2 md:hidden dark:border-stone-700 dark:bg-stone-900">
-        <NavLink to="/" className="shrink-0 text-amber-800 dark:text-amber-400" aria-label={STR.appName}>
-          <TreeDeciduous size={24} aria-hidden="true" />
+      <header className="flex items-center gap-3 border-b border-line bg-surface px-3 py-2 md:hidden">
+        <NavLink to="/" className="shrink-0" aria-label={STR.appName}>
+          <img src={logoUrl} alt="" width={30} height={30} className="rounded-full" aria-hidden="true" />
         </NavLink>
         <div className="flex-1">
           <SearchBar />
@@ -91,7 +89,7 @@ export function AppShell() {
       </main>
 
       {/* Mobilni bottom tabovi */}
-      <nav className="flex border-t border-stone-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden dark:border-stone-700 dark:bg-stone-900">
+      <nav className="flex border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:hidden">
         {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
           <NavLink key={to} to={navTo(to)} end={to === '/'} className={mobileLinkClass}>
             <Icon size={20} aria-hidden="true" />

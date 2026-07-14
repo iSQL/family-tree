@@ -108,8 +108,8 @@ export function PhotoUploadDialog({ open, onClose, personId, currentPhotoId }: P
     <Dialog open={open} onClose={onClose} title={STR.photo.dialogTitle}>
       {src ? (
         <div className="space-y-3">
-          <p className="text-xs text-stone-500 dark:text-stone-400">{STR.photo.hint}</p>
-          <div className="relative h-72 overflow-hidden rounded-lg bg-stone-900">
+          <p className="text-sm text-muted">{STR.photo.hint}</p>
+          <div className="relative h-72 overflow-hidden rounded-lg bg-navy2">
             <Cropper
               image={src}
               crop={crop}
@@ -122,7 +122,7 @@ export function PhotoUploadDialog({ open, onClose, personId, currentPhotoId }: P
               onCropComplete={onCropComplete}
             />
           </div>
-          <label className="flex items-center gap-2 text-xs text-stone-500 dark:text-stone-400">
+          <label className="flex items-center gap-2 text-sm text-muted">
             {STR.photo.zoom}
             <input
               type="range"
@@ -131,7 +131,7 @@ export function PhotoUploadDialog({ open, onClose, personId, currentPhotoId }: P
               step={0.05}
               value={zoom}
               onChange={(e) => setZoom(Number(e.target.value))}
-              className="flex-1 accent-amber-700 dark:accent-amber-500"
+              className="flex-1 accent-[#1d3557] dark:accent-[#c29b47]"
             />
           </label>
           <div className="flex justify-end gap-2">
@@ -149,7 +149,7 @@ export function PhotoUploadDialog({ open, onClose, personId, currentPhotoId }: P
         </div>
       ) : (
         <div className="space-y-3">
-          <label className="flex h-40 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-stone-300 text-sm text-stone-500 hover:border-amber-600 hover:text-amber-700 dark:border-stone-600 dark:text-stone-400">
+          <label className="flex h-40 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line text-base text-faint hover:border-gold hover:text-goldd">
             <ImagePlus size={28} aria-hidden="true" />
             {STR.photo.pick}
             <input type="file" accept="image/*" className="hidden" onChange={onFileChange} />

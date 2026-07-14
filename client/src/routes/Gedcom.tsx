@@ -73,7 +73,7 @@ function FullBackupSection() {
     <Card>
       <CardHeader title={STR.backup.title} />
       <div className="space-y-4 p-4">
-        <p className="text-sm text-stone-600 dark:text-stone-300">{STR.backup.intro}</p>
+        <p className="text-base text-muted">{STR.backup.intro}</p>
 
         <Button
           onClick={() => exportMutation.mutate()}
@@ -84,14 +84,14 @@ function FullBackupSection() {
           {STR.backup.exportButton}
         </Button>
 
-        <div className="border-t border-stone-200 pt-4 dark:border-stone-700">
-          <h3 className="text-sm font-semibold text-stone-700 dark:text-stone-200">{STR.backup.restoreTitle}</h3>
-          <p className="mt-1 mb-3 flex items-start gap-1 text-xs text-red-600 dark:text-red-400">
+        <div className="border-t border-line pt-4">
+          <h3 className="font-display text-base font-normal text-heading">{STR.backup.restoreTitle}</h3>
+          <p className="mt-1 mb-3 flex items-start gap-1 text-xs text-danger">
             <AlertTriangle size={13} aria-hidden="true" className="mt-0.5 shrink-0" />
             {STR.backup.restoreHint}
           </p>
           <label className="block">
-            <span className="mb-1 block text-xs font-semibold tracking-wide text-stone-500 uppercase dark:text-stone-400">
+            <span className="zb-label mb-1 block text-[11px] tracking-[.16em] text-faint">
               {STR.backup.fileLabel}
             </span>
             <input
@@ -103,7 +103,7 @@ function FullBackupSection() {
                 setFile(e.target.files?.[0] ?? null);
                 setResult(null);
               }}
-              className="block w-full cursor-pointer text-sm text-stone-600 file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-amber-700 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white hover:file:bg-amber-800 disabled:opacity-50 dark:text-stone-300 dark:file:bg-amber-600 dark:hover:file:bg-amber-500"
+              className="block w-full cursor-pointer text-sm text-muted file:zb-label file:mr-3 file:cursor-pointer file:rounded-[9px] file:border-0 file:bg-navy file:px-3 file:py-1.5 file:text-xs file:text-onnav hover:file:bg-navy2 disabled:opacity-50"
             />
           </label>
           <Button
@@ -119,7 +119,7 @@ function FullBackupSection() {
         </div>
 
         {result && (
-          <div className="grid grid-cols-3 gap-2 border-t border-stone-200 pt-4 dark:border-stone-700">
+          <div className="grid grid-cols-3 gap-2 border-t border-line pt-4">
             <ResultNumber label={STR.backup.personsRestored} value={result.persons} />
             <ResultNumber label={STR.backup.unionsRestored} value={result.unions} />
             <ResultNumber label={STR.backup.photosRestored} value={result.photos} />
@@ -147,9 +147,9 @@ type ImportMode = 'replace' | 'merge';
 
 function ResultNumber({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg bg-stone-100 px-3 py-2 text-center dark:bg-stone-800">
-      <p className="text-xl font-bold text-amber-800 dark:text-amber-400">{value}</p>
-      <p className="text-xs text-stone-500 dark:text-stone-400">{label}</p>
+    <div className="rounded-xl border border-line bg-bg px-3 py-2 text-center">
+      <p className="font-display text-2xl font-normal text-goldd">{value}</p>
+      <p className="text-xs text-muted">{label}</p>
     </div>
   );
 }
@@ -166,16 +166,16 @@ function ImportResultView({ result }: { result: GedcomImportResult }) {
         </div>
 
         {result.warnings.length === 0 ? (
-          <p className="text-sm text-stone-500 dark:text-stone-400">{STR.gedcom.noWarnings}</p>
+          <p className="text-sm text-muted">{STR.gedcom.noWarnings}</p>
         ) : (
           <div>
-            <h3 className="mb-1.5 text-xs font-semibold tracking-wide text-stone-500 uppercase dark:text-stone-400">
+            <h3 className="zb-label mb-1.5 text-[11px] tracking-[.16em] text-faint">
               {STR.gedcom.warningsTitle}
             </h3>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-stone-200 text-left text-xs text-stone-500 dark:border-stone-700 dark:text-stone-400">
+                  <tr className="border-b border-line text-left text-xs text-muted">
                     <th className="py-1.5 pr-3 font-medium">{STR.gedcom.warningTag}</th>
                     <th className="py-1.5 pr-3 font-medium">{STR.gedcom.warningCount}</th>
                     <th className="py-1.5 font-medium">{STR.gedcom.warningSample}</th>
@@ -183,10 +183,10 @@ function ImportResultView({ result }: { result: GedcomImportResult }) {
                 </thead>
                 <tbody>
                   {result.warnings.map((w) => (
-                    <tr key={w.tag} className="border-b border-stone-100 dark:border-stone-800">
+                    <tr key={w.tag} className="border-b border-line/60">
                       <td className="py-1.5 pr-3 font-mono text-xs">{w.tag}</td>
                       <td className="py-1.5 pr-3">{w.count}</td>
-                      <td className="max-w-xs truncate py-1.5 text-stone-500 dark:text-stone-400">
+                      <td className="max-w-xs truncate py-1.5 text-muted">
                         {w.sample ?? '—'}
                       </td>
                     </tr>
@@ -268,7 +268,7 @@ export default function GedcomPage() {
         <Card>
           <CardHeader title={STR.gedcom.exportTitle} />
           <div className="space-y-3 p-4">
-            <p className="text-sm text-stone-600 dark:text-stone-300">{STR.gedcom.exportText}</p>
+            <p className="text-base text-muted">{STR.gedcom.exportText}</p>
             <Button
               onClick={() => exportMutation.mutate()}
               disabled={!online || exportMutation.isPending}
@@ -286,7 +286,7 @@ export default function GedcomPage() {
           <CardHeader title={STR.gedcom.importTitle} />
           <div className="space-y-4 p-4">
             <label className="block">
-              <span className="mb-1 block text-xs font-semibold tracking-wide text-stone-500 uppercase dark:text-stone-400">
+              <span className="zb-label mb-1 block text-[11px] tracking-[.16em] text-faint">
                 {STR.gedcom.fileLabel}
               </span>
               <input
@@ -298,12 +298,12 @@ export default function GedcomPage() {
                   setFile(e.target.files?.[0] ?? null);
                   setResult(null);
                 }}
-                className="block w-full cursor-pointer text-sm text-stone-600 file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-amber-700 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white hover:file:bg-amber-800 disabled:opacity-50 dark:text-stone-300 dark:file:bg-amber-600 dark:hover:file:bg-amber-500"
+                className="block w-full cursor-pointer text-sm text-muted file:zb-label file:mr-3 file:cursor-pointer file:rounded-[9px] file:border-0 file:bg-navy file:px-3 file:py-1.5 file:text-xs file:text-onnav hover:file:bg-navy2 disabled:opacity-50"
               />
             </label>
 
             <fieldset>
-              <legend className="mb-1.5 text-xs font-semibold tracking-wide text-stone-500 uppercase dark:text-stone-400">
+              <legend className="zb-label mb-1.5 text-[11px] tracking-[.16em] text-faint">
                 {STR.gedcom.modeLabel}
               </legend>
               <div className="space-y-2">
@@ -318,11 +318,11 @@ export default function GedcomPage() {
                       setMode('merge');
                       setResult(null);
                     }}
-                    className="mt-0.5 accent-amber-700"
+                    className="mt-0.5 accent-[#1d3557] dark:accent-[#c29b47]"
                   />
                   <span>
                     <span className="font-medium">{STR.gedcom.modeMerge}</span>
-                    <span className="block text-xs text-stone-500 dark:text-stone-400">
+                    <span className="block text-xs text-muted">
                       {STR.gedcom.modeMergeHint}
                     </span>
                   </span>
@@ -338,11 +338,11 @@ export default function GedcomPage() {
                       setMode('replace');
                       setResult(null);
                     }}
-                    className="mt-0.5 accent-amber-700"
+                    className="mt-0.5 accent-[#1d3557] dark:accent-[#c29b47]"
                   />
                   <span>
                     <span className="font-medium">{STR.gedcom.modeReplace}</span>
-                    <span className="flex items-start gap-1 text-xs text-red-600 dark:text-red-400">
+                    <span className="flex items-start gap-1 text-xs text-danger">
                       <AlertTriangle size={13} aria-hidden="true" className="mt-0.5 shrink-0" />
                       {STR.gedcom.modeReplaceWarning}
                     </span>

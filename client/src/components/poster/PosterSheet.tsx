@@ -43,8 +43,15 @@ export interface PosterSheetProps {
   onCardClick?: (id: number) => void;
 }
 
-const GENDER_HEX: Record<Gender, string> = { M: '#0e7490', F: '#be185d', U: '#78716c' };
-const NEUTRAL = '#78716c';
+const GENDER_HEX: Record<Gender, string> = { M: '#294d75', F: '#b0862f', U: '#8a7c6a' };
+const NEUTRAL = '#8a7c6a';
+/** Brend boje (zabari.net) — poster je uvek svetao papir. */
+const NAVY = '#1d3557';
+const GOLD = '#c29b47';
+const GOLD_DARK = '#b89040';
+const INK = '#2b2b2b';
+const MUTED = '#6e6558';
+const FAINT = '#9a8e7e';
 
 /** Unutrašnja margina lista i visine zaglavlja/legende u px. */
 const PAD = 30;
@@ -117,33 +124,33 @@ export function PosterSheet({
         width,
         height,
         background: '#ffffff',
-        color: '#292524',
+        color: INK,
         display: 'flex',
         flexDirection: 'column',
         padding: PAD,
         boxSizing: 'border-box',
         flexShrink: 0,
-        fontFamily: "ui-sans-serif, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+        fontFamily: "'Cormorant Garamond', Georgia, 'Times New Roman', serif",
       }}
     >
       {extras.frame && (
         <>
-          <div style={{ position: 'absolute', inset: 14, border: '2px solid #d6b98c', borderRadius: 3, pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', inset: 19, border: '1px solid #e8d9be', borderRadius: 2, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', inset: 14, border: `2px solid ${GOLD}`, borderRadius: 3, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', inset: 19, border: '1px solid #e2d7c7', borderRadius: 2, pointerEvents: 'none' }} />
         </>
       )}
 
       {hasHeader && (
         <div style={{ textAlign: 'center', flexShrink: 0, height: headerH, paddingBottom: 6 }}>
           {extras.title && (
-            <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: 0.4, color: '#292524' }}>{posterTitle}</div>
+            <div style={{ fontFamily: "'Marcellus', Georgia, serif", fontSize: 27, fontWeight: 400, letterSpacing: 0.4, color: NAVY }}>{posterTitle}</div>
           )}
           {extras.subtitle && (
-            <div style={{ fontSize: 12, color: '#78716c', marginTop: 5 }}>
+            <div style={{ fontFamily: "'Marcellus SC', Georgia, serif", fontSize: 10.5, letterSpacing: '0.14em', textTransform: 'uppercase' as const, color: GOLD_DARK, marginTop: 5 }}>
               {STR.poster.subtitlePrefix} {todayLabel()} · {layout.nodes.length} {STR.poster.personsWord}
             </div>
           )}
-          <div style={{ width: 56, height: 3, background: '#d97706', borderRadius: 2, margin: '10px auto 0' }} />
+          <div style={{ width: 56, height: 3, background: GOLD, borderRadius: 2, margin: '10px auto 0' }} />
         </div>
       )}
 
@@ -182,7 +189,7 @@ export function PosterSheet({
                 key={i}
                 points={ln.points}
                 fill="none"
-                stroke={ln.main ? '#b45309' : '#a8a29e'}
+                stroke={ln.main ? GOLD_DARK : '#dac9b2'}
                 strokeWidth={2.5}
                 strokeLinejoin="round"
               />
@@ -196,9 +203,9 @@ export function PosterSheet({
             const place = content.birthplace ? (p.birth_place ?? '') : '';
             // Isticanje izbora/veze pobeđuje nad okvirom glavne osobe (kao u stablu).
             const ring = isHighlighted
-              ? { outline: '3px solid #0d9488', outlineOffset: 1, boxShadow: '0 1px 3px rgba(0,0,0,0.18), 0 0 0 5px rgba(13,148,136,0.18)' }
+              ? { outline: `3px solid ${NAVY}`, outlineOffset: 1, boxShadow: '0 1px 3px rgba(20,30,50,0.16), 0 0 0 5px rgba(29,53,87,0.16)' }
               : isMain
-                ? { outline: '3px solid #d97706', outlineOffset: 1 }
+                ? { outline: `3px solid ${GOLD}`, outlineOffset: 1 }
                 : null;
             return (
               <div
@@ -229,7 +236,7 @@ export function PosterSheet({
                   padding: '8px 10px',
                   borderRadius: 10,
                   background: '#ffffff',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.18)',
+                  boxShadow: '0 1px 3px rgba(20,30,50,0.16)',
                   borderLeft: `5px solid ${hex}`,
                   overflow: 'hidden',
                   boxSizing: 'border-box',
@@ -263,10 +270,10 @@ export function PosterSheet({
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div
                     style={{
-                      fontSize: 12,
+                      fontSize: 13,
                       fontWeight: 600,
                       lineHeight: 1.2,
-                      color: '#292524',
+                      color: INK,
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -274,15 +281,15 @@ export function PosterSheet({
                   >
                     {`${p.first_name} ${p.last_name}`.trim() || '?'}
                     {content.title && p.title && (
-                      <span style={{ fontSize: 9, fontWeight: 400, color: '#78716c' }}> {p.title}</span>
+                      <span style={{ fontSize: 10, fontWeight: 400, color: MUTED }}> {p.title}</span>
                     )}
                   </div>
-                  {years && <div style={{ fontSize: 10.5, color: '#78716c', marginTop: 1 }}>{years}</div>}
+                  {years && <div style={{ fontSize: 11, color: MUTED, marginTop: 1 }}>{years}</div>}
                   {place && (
                     <div
                       style={{
-                        fontSize: 9.5,
-                        color: '#a8a29e',
+                        fontSize: 10,
+                        color: FAINT,
                         marginTop: 1,
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
@@ -305,8 +312,8 @@ export function PosterSheet({
             preserveAspectRatio="none"
             aria-hidden="true"
           >
-            <line x1="50" y1="0" x2="50" y2="100" stroke="#0d9488" strokeWidth="0.35" strokeDasharray="2 1.4" />
-            <line x1="0" y1="50" x2="100" y2="50" stroke="#0d9488" strokeWidth="0.35" strokeDasharray="2 1.4" />
+            <line x1="50" y1="0" x2="50" y2="100" stroke={NAVY} strokeWidth="0.35" strokeDasharray="2 1.4" />
+            <line x1="0" y1="50" x2="100" y2="50" stroke={NAVY} strokeWidth="0.35" strokeDasharray="2 1.4" />
           </svg>
         )}
       </div>
@@ -322,16 +329,16 @@ export function PosterSheet({
             gap: 18,
             flexWrap: 'wrap',
             paddingTop: 8,
-            borderTop: '1px solid #f0eeec',
+            borderTop: '1px solid #e2d7c7',
           }}
         >
           {[
             { color: GENDER_HEX.M, label: STR.poster.legendMale, ring: false },
             { color: GENDER_HEX.F, label: STR.poster.legendFemale, ring: false },
-            { color: '#d97706', label: STR.poster.legendMain, ring: true },
-            ...(highlightLegend !== null ? [{ color: '#0d9488', label: highlightLegend, ring: true }] : []),
+            { color: GOLD, label: STR.poster.legendMain, ring: true },
+            ...(highlightLegend !== null ? [{ color: NAVY, label: highlightLegend, ring: true }] : []),
           ].map((it) => (
-            <div key={it.label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#57534e' }}>
+            <div key={it.label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: MUTED }}>
               <span
                 style={{
                   width: 14,
@@ -358,13 +365,14 @@ export function PosterSheet({
             display: 'flex',
             alignItems: 'center',
             gap: 5,
-            color: '#c4beb8',
+            color: '#c9bda6',
+            fontFamily: "'Marcellus SC', Georgia, serif",
             fontSize: 10,
-            fontWeight: 600,
+            letterSpacing: '0.08em',
           }}
         >
-          <LeafMark size={13} color="#c4beb8" />
-          {STR.appName}
+          <LeafMark size={13} color="#c9bda6" />
+          {STR.appName} · {STR.brand.site}
         </div>
       )}
     </div>

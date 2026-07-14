@@ -63,7 +63,7 @@ export function PersonSheet({ personId, onClose, onFocusPerson, onShowInTree }: 
   return createPortal(
     <div className="fixed inset-0 z-30">
       <div
-        className="absolute inset-0 bg-black/50"
+        className="absolute inset-0 bg-[rgba(15,25,45,.5)]"
         style={{ opacity: 1 - Math.min(dragY / 500, 0.6) }}
         onClick={onClose}
         aria-hidden="true"
@@ -72,7 +72,7 @@ export function PersonSheet({ personId, onClose, onFocusPerson, onShowInTree }: 
         role="dialog"
         aria-modal="true"
         aria-label={name}
-        className="absolute inset-x-0 bottom-0 z-40 flex max-h-[88dvh] flex-col rounded-t-2xl bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl dark:bg-stone-900"
+        className="absolute inset-x-0 bottom-0 z-40 flex max-h-[88dvh] flex-col rounded-t-[22px] bg-surface pb-[env(safe-area-inset-bottom)] shadow-[0_-16px_40px_-18px_rgba(20,30,50,.5)]"
         style={{ transform: `translateY(${dragY}px)`, transition: dragging ? 'none' : 'transform 0.2s ease-out' }}
       >
         {/* Drag handle: grabber + zaglavlje (povlačenje ovde zatvara; telo i dalje skroluje) */}
@@ -83,14 +83,14 @@ export function PersonSheet({ personId, onClose, onFocusPerson, onShowInTree }: 
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
         >
-          <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-stone-300 dark:bg-stone-600" aria-hidden="true" />
+          <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-line" aria-hidden="true" />
           <div className="flex items-center justify-between px-4 py-2">
-            <h2 className="truncate text-sm font-semibold text-stone-500 dark:text-stone-400">{name}</h2>
+            <h2 className="truncate zb-label text-xs text-muted">{name}</h2>
             <button
               type="button"
               onClick={onClose}
               aria-label={STR.common.close}
-              className="-mr-1 cursor-pointer rounded-md p-2 text-stone-500 hover:bg-stone-200/70 dark:hover:bg-stone-700/70"
+              className="-mr-1 cursor-pointer rounded-md p-2 text-muted hover:bg-surface2"
             >
               <X size={20} />
             </button>
@@ -100,7 +100,7 @@ export function PersonSheet({ personId, onClose, onFocusPerson, onShowInTree }: 
           {isPending ? (
             <FullScreenSpinner />
           ) : isError || !person ? (
-            <p className="text-sm text-stone-500 dark:text-stone-400">{STR.person.notFound}</p>
+            <p className="text-sm text-muted">{STR.person.notFound}</p>
           ) : (
             <PersonDetailContent
               person={person}

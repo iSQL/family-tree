@@ -53,26 +53,26 @@ function marriageYearsLabel(n: number): string {
 function DaysBadge({ days }: { days: number }) {
   if (days === 0) {
     return (
-      <span className="shrink-0 rounded-full bg-amber-600 px-2.5 py-0.5 text-xs font-semibold text-white">
+      <span className="zb-label shrink-0 rounded-full bg-gold px-2.5 py-0.5 text-[11px] text-ongold">
         {STR.birthdays.today}
       </span>
     );
   }
   if (days === 1) {
     return (
-      <span className="shrink-0 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+      <span className="zb-label shrink-0 rounded-full bg-activebg px-2.5 py-0.5 text-[11px] text-activefg">
         {STR.birthdays.tomorrow}
       </span>
     );
   }
-  return <span className="shrink-0 text-xs text-stone-500 dark:text-stone-400">{daysLabel(days)}</span>;
+  return <span className="shrink-0 text-xs text-muted">{daysLabel(days)}</span>;
 }
 
 function PersonLink({ person }: { person: PersonSlim }) {
   return (
     <Link
       to={`/?focus=${person.id}`}
-      className="truncate text-sm font-medium hover:text-amber-700 hover:underline dark:hover:text-amber-400"
+      className="truncate text-base font-semibold text-ink hover:text-goldd hover:underline"
     >
       {person.first_name} {person.last_name}
     </Link>
@@ -128,7 +128,7 @@ export default function BirthdaysPage() {
   if (isError || !tree) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
-        <p className="text-sm text-stone-600 dark:text-stone-300">{STR.common.error}</p>
+        <p className="text-base text-muted">{STR.common.error}</p>
         <Button onClick={() => void refetch()}>{STR.common.retry}</Button>
       </div>
     );
@@ -146,15 +146,15 @@ export default function BirthdaysPage() {
         <Card>
           <CardHeader title={STR.birthdays.birthdaysTitle} />
           {computed.birthdays.length === 0 ? (
-            <p className="px-4 py-6 text-center text-sm text-stone-400">{STR.birthdays.emptyBirthdays}</p>
+            <p className="px-4 py-6 text-center text-sm text-faint">{STR.birthdays.emptyBirthdays}</p>
           ) : (
-            <ul className="divide-y divide-stone-200 dark:divide-stone-700">
+            <ul className="divide-y divide-line">
               {computed.birthdays.map(({ person, days, turns }) => (
                 <li key={person.id} className="flex items-center gap-3 px-4 py-2.5">
                   <Avatar person={person} size={40} />
                   <div className="min-w-0 flex-1">
                     <PersonLink person={person} />
-                    <p className="text-xs text-stone-500 dark:text-stone-400">
+                    <p className="text-sm text-muted">
                       {formatPartialDate(person.birth_date)}
                       {turns !== null && ` · ${turnsLabel(turns)}`}
                     </p>
@@ -169,22 +169,22 @@ export default function BirthdaysPage() {
         <Card>
           <CardHeader title={STR.birthdays.anniversariesTitle} />
           {computed.anniversaries.length === 0 ? (
-            <p className="px-4 py-6 text-center text-sm text-stone-400">{STR.birthdays.emptyAnniversaries}</p>
+            <p className="px-4 py-6 text-center text-sm text-faint">{STR.birthdays.emptyAnniversaries}</p>
           ) : (
-            <ul className="divide-y divide-stone-200 dark:divide-stone-700">
+            <ul className="divide-y divide-line">
               {computed.anniversaries.map(({ union, p1, p2, days, years }) => (
                 <li key={union.id} className="flex items-center gap-3 px-4 py-2.5">
                   <span className="flex shrink-0 -space-x-2">
-                    <Avatar person={p1} size={40} className="ring-2 ring-white dark:ring-stone-900" />
-                    <Avatar person={p2} size={40} className="ring-2 ring-white dark:ring-stone-900" />
+                    <Avatar person={p1} size={40} className="ring-2 ring-surface" />
+                    <Avatar person={p2} size={40} className="ring-2 ring-surface" />
                   </span>
                   <div className="min-w-0 flex-1">
                     <span className="flex flex-wrap items-center gap-x-1.5">
                       <PersonLink person={p1} />
-                      <span className="text-xs text-stone-400">&</span>
+                      <span className="text-xs text-faint">&</span>
                       <PersonLink person={p2} />
                     </span>
-                    <p className="text-xs text-stone-500 dark:text-stone-400">
+                    <p className="text-sm text-muted">
                       {formatPartialDate(union.start_date)}
                       {years !== null && ` · ${marriageYearsLabel(years)}`}
                     </p>
@@ -196,7 +196,7 @@ export default function BirthdaysPage() {
           )}
         </Card>
 
-        <p className="flex items-center gap-1.5 px-1 text-xs text-stone-400 dark:text-stone-500">
+        <p className="flex items-center gap-1.5 px-1 text-sm text-faint">
           <Info size={14} aria-hidden="true" className="shrink-0" />
           {STR.birthdays.fullDateNote}
         </p>

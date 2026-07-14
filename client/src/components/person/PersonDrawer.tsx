@@ -18,16 +18,16 @@ export function PersonDrawer({ personId, onClose, onFocusPerson, onShowInTree }:
   const { data: person, isPending, isError } = usePerson(personId);
 
   return (
-    <aside className="absolute inset-y-0 right-0 z-20 flex w-[400px] max-w-full flex-col border-l border-stone-200 bg-white shadow-xl dark:border-stone-700 dark:bg-stone-900">
-      <div className="flex items-center justify-between border-b border-stone-200 px-4 py-2.5 dark:border-stone-700">
-        <h2 className="text-sm font-semibold text-stone-500 dark:text-stone-400">
+    <aside className="absolute inset-y-0 right-0 z-20 flex w-[400px] max-w-full flex-col border-l border-line bg-surface shadow-[-16px_0_40px_-20px_rgba(20,30,50,.4)]">
+      <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
+        <h2 className="zb-label text-xs text-muted">
           {person ? `${person.first_name} ${person.last_name}` : STR.common.loading}
         </h2>
         <button
           type="button"
           onClick={onClose}
           aria-label={STR.common.close}
-          className="cursor-pointer rounded-md p-2 text-stone-500 hover:bg-stone-200/70 dark:hover:bg-stone-700/70"
+          className="cursor-pointer rounded-md p-2 text-muted hover:bg-surface2"
         >
           <X size={18} />
         </button>
@@ -36,7 +36,7 @@ export function PersonDrawer({ personId, onClose, onFocusPerson, onShowInTree }:
         {isPending ? (
           <FullScreenSpinner />
         ) : isError || !person ? (
-          <p className="text-sm text-stone-500 dark:text-stone-400">{STR.person.notFound}</p>
+          <p className="text-sm text-muted">{STR.person.notFound}</p>
         ) : (
           <PersonDetailContent
             person={person}

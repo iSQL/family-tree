@@ -22,7 +22,7 @@ const THEME_OPTIONS: { value: Theme; label: string; icon: LucideIcon }[] = [
 /** Sklopiv blok sa numerisanim koracima za instalaciju (Android / iOS). */
 function InstallSteps({ title, steps }: { title: string; steps: string[] }) {
   return (
-    <details className="group rounded-lg border border-stone-200 dark:border-stone-700">
+    <details className="group rounded-xl border border-line">
       <summary className="flex cursor-pointer items-center gap-1.5 px-3 py-2 text-sm font-medium select-none">
         <ChevronRight
           size={14}
@@ -31,7 +31,7 @@ function InstallSteps({ title, steps }: { title: string; steps: string[] }) {
         />
         {title}
       </summary>
-      <ol className="list-decimal space-y-1 px-3 pb-3 pl-9 text-sm text-stone-600 dark:text-stone-300">
+      <ol className="list-decimal space-y-1 px-3 pb-3 pl-9 text-base text-muted">
         {steps.map((step) => (
           <li key={step}>{step}</li>
         ))}
@@ -65,7 +65,7 @@ export default function SettingsPage() {
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="mx-auto w-full max-w-2xl space-y-4 p-4">
-        <h1 className="text-lg font-bold">{STR.settings.title}</h1>
+        <h1 className="font-display text-2xl font-normal text-heading">{STR.settings.title}</h1>
 
         {/* Tema */}
         <Card>
@@ -90,10 +90,10 @@ export default function SettingsPage() {
         <Card>
           <CardHeader title={STR.settings.posterSection} />
           <div className="space-y-3 p-4">
-            <p className="text-sm text-stone-600 dark:text-stone-300">{STR.settings.posterHint}</p>
+            <p className="text-base text-muted">{STR.settings.posterHint}</p>
             <Link
               to="/settings/poster"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-amber-700 px-3 py-2 text-sm font-medium text-white hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-500"
+              className="zb-label inline-flex items-center gap-1.5 rounded-[9px] bg-navy px-3 py-2 text-xs text-onnav shadow-[0_8px_20px_-8px_rgba(20,30,50,.5)] hover:bg-navy2"
             >
               <Printer size={16} aria-hidden="true" />
               {STR.settings.posterLink}
@@ -105,14 +105,14 @@ export default function SettingsPage() {
         <Card>
           <CardHeader title={STR.settings.install} />
           <div className="space-y-3 p-4">
-            <p className="text-sm text-stone-600 dark:text-stone-300">{STR.settings.installHint}</p>
+            <p className="text-base text-muted">{STR.settings.installHint}</p>
             {canInstall ? (
               <Button onClick={() => void promptInstall()}>
                 <Download size={16} aria-hidden="true" />
                 {STR.settings.installButton}
               </Button>
             ) : (
-              <p className="text-xs text-stone-400 dark:text-stone-500">{STR.settings.installUnavailable}</p>
+              <p className="text-sm text-faint">{STR.settings.installUnavailable}</p>
             )}
             <InstallSteps
               title={STR.settings.installAndroidTitle}
@@ -130,14 +130,14 @@ export default function SettingsPage() {
           <CardHeader title={STR.settings.account} />
           <div className="p-4">
             {session?.auth_mode === 'disabled' ? (
-              <p className="text-sm text-stone-500 dark:text-stone-400">{STR.settings.authDisabledNote}</p>
+              <p className="text-base text-muted">{STR.settings.authDisabledNote}</p>
             ) : !session?.authenticated ? (
               // Neprijavljeni gost u režimu javnog čitanja
               <div className="space-y-3">
-                <p className="text-sm text-amber-700 dark:text-amber-400">{STR.settings.readonlyNote}</p>
+                <p className="text-base text-activefg">{STR.settings.readonlyNote}</p>
                 <Link
                   to="/login"
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-amber-700 px-3 py-2 text-sm font-medium text-white hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-500"
+                  className="zb-label inline-flex items-center gap-1.5 rounded-[9px] bg-navy px-3 py-2 text-xs text-onnav shadow-[0_8px_20px_-8px_rgba(20,30,50,.5)] hover:bg-navy2"
                 >
                   <LogIn size={16} aria-hidden="true" />
                   {STR.readonly.loginToEdit}
@@ -146,7 +146,7 @@ export default function SettingsPage() {
             ) : (
               <div className="space-y-3">
                 {readonly && (
-                  <p className="text-sm text-amber-700 dark:text-amber-400">{STR.settings.readonlyNote}</p>
+                  <p className="text-base text-activefg">{STR.settings.readonlyNote}</p>
                 )}
                 <Button
                   variant="secondary"
@@ -167,22 +167,22 @@ export default function SettingsPage() {
           <CardHeader title={STR.settings.dataSection} />
           <div className="space-y-3 p-4">
             <dl className="grid grid-cols-2 gap-2 text-sm">
-              <div className="rounded-lg bg-stone-100 px-3 py-2 dark:bg-stone-800">
-                <dt className="text-xs text-stone-500 dark:text-stone-400">{STR.settings.personsCount}</dt>
-                <dd className="text-lg font-bold text-amber-800 dark:text-amber-400">
+              <div className="rounded-xl border border-line bg-bg px-3 py-2">
+                <dt className="zb-label text-[10px] tracking-[.12em] text-faint">{STR.settings.personsCount}</dt>
+                <dd className="font-display text-2xl font-normal text-goldd">
                   {tree ? tree.persons.length : '—'}
                 </dd>
               </div>
-              <div className="rounded-lg bg-stone-100 px-3 py-2 dark:bg-stone-800">
-                <dt className="text-xs text-stone-500 dark:text-stone-400">{STR.settings.unionsCount}</dt>
-                <dd className="text-lg font-bold text-amber-800 dark:text-amber-400">
+              <div className="rounded-xl border border-line bg-bg px-3 py-2">
+                <dt className="zb-label text-[10px] tracking-[.12em] text-faint">{STR.settings.unionsCount}</dt>
+                <dd className="font-display text-2xl font-normal text-goldd">
                   {tree ? tree.unions.length : '—'}
                 </dd>
               </div>
             </dl>
             <Link
               to="/gedcom"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-amber-700 px-3 py-2 text-sm font-medium text-white hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-500"
+              className="zb-label inline-flex items-center gap-1.5 rounded-[9px] bg-navy px-3 py-2 text-xs text-onnav shadow-[0_8px_20px_-8px_rgba(20,30,50,.5)] hover:bg-navy2"
             >
               <FileText size={16} aria-hidden="true" />
               {STR.settings.gedcomLink}

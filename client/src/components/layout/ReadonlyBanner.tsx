@@ -14,13 +14,13 @@ export function ReadonlyBanner() {
   const anonymous = data ? !data.authenticated && data.auth_mode !== 'disabled' : false;
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 bg-amber-200 px-3 py-1.5 text-center text-sm font-medium text-amber-950">
+    <div className="zb-label flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 bg-activebg px-3 py-1.5 text-center text-xs text-activefg">
       <span className="flex items-center gap-2">
         <Eye size={16} aria-hidden="true" />
         {STR.readonly.banner}
       </span>
       {anonymous && (
-        <Link to="/login" className="underline underline-offset-2 hover:text-amber-800">
+        <Link to="/login" className="underline underline-offset-2 hover:opacity-80">
           {STR.readonly.loginToEdit}
         </Link>
       )}

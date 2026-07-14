@@ -23,8 +23,8 @@ export default defineConfig({
         lang: 'sr',
         start_url: '/',
         display: 'standalone',
-        theme_color: '#b45309',
-        background_color: '#fafaf9',
+        theme_color: '#1d3557',
+        background_color: '#f5ebe0',
         icons: [
           { src: 'icons/pwa-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icons/pwa-512.png', sizes: '512x512', type: 'image/png' },
@@ -32,6 +32,8 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Fontovi (woff2) ulaze u precache da bi brend tipografija radila i offline.
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         // /api/* nikad ne sme da padne na SPA shell.
         navigateFallbackDenylist: [/^\/api\//],
         // VAŽNO: /api/auth se NIKAD ne kešira — obrasci ispod ga ne hvataju.

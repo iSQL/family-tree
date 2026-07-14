@@ -174,7 +174,7 @@ export default function TreePage() {
   if (isError || !tree) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
-        <p className="text-sm text-stone-600 dark:text-stone-300">{STR.tree.loadFailed}</p>
+        <p className="text-base text-muted">{STR.tree.loadFailed}</p>
         <Button onClick={() => void refetch()}>{STR.common.retry}</Button>
       </div>
     );
@@ -183,10 +183,10 @@ export default function TreePage() {
   if (tree.persons.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
-        <TreeDeciduous size={56} className="text-stone-300 dark:text-stone-600" aria-hidden="true" />
+        <TreeDeciduous size={56} className="text-faint" aria-hidden="true" />
         <div>
-          <h2 className="text-lg font-semibold">{STR.tree.emptyTitle}</h2>
-          <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{STR.tree.emptyText}</p>
+          <h2 className="font-display text-xl font-normal text-heading">{STR.tree.emptyTitle}</h2>
+          <p className="mt-1 text-base text-muted">{STR.tree.emptyText}</p>
         </div>
         {!readonly && (
           <Button onClick={() => navigate('/person/new')}>

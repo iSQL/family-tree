@@ -18,10 +18,10 @@ function PathChip({
       type="button"
       onClick={onClick}
       title={isApex ? STR.kinship.commonAncestor : undefined}
-      className={`flex max-w-full cursor-pointer items-center gap-1.5 rounded-full border py-1 pr-3 pl-1 text-sm hover:bg-amber-50 dark:hover:bg-stone-700 ${
+      className={`flex max-w-full cursor-pointer items-center gap-1.5 rounded-full border py-1 pr-3 pl-1 text-sm text-ink ${
         isApex
-          ? 'border-amber-500 bg-amber-50 ring-1 ring-amber-500 dark:bg-stone-700'
-          : 'border-stone-300 bg-white hover:border-amber-600 dark:border-stone-600 dark:bg-stone-800'
+          ? 'border-gold bg-activebg ring-1 ring-gold'
+          : 'border-line bg-cardbg hover:border-gold'
       }`}
     >
       <Avatar person={person} size={24} />
@@ -55,21 +55,21 @@ export function KinshipResultView({ result, tree, onPathClick }: KinshipResultVi
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         {result.term !== null && (
-          <span className="rounded-full bg-amber-600 px-3 py-1 text-sm font-semibold text-white">
+          <span className="font-display rounded-full bg-navy px-3.5 py-1 text-lg text-onnav dark:bg-activebg dark:text-activefg">
             {result.term}
           </span>
         )}
         {result.degree !== null && (
-          <span className="rounded-full bg-stone-200 px-3 py-1 text-xs font-medium text-stone-700 dark:bg-stone-700 dark:text-stone-200">
+          <span className="zb-label rounded-full bg-activebg px-3 py-1 text-[11px] tracking-[.14em] text-activefg">
             {result.degree}. {STR.kinship.degreeSuffix}
           </span>
         )}
       </div>
-      <p className="text-lg font-medium">{result.description}</p>
+      <p className="text-lg text-ink">{result.description}</p>
 
       {pathPersons.length > 1 && (
         <div>
-          <h3 className="mb-1.5 text-xs font-semibold tracking-wide text-stone-500 uppercase dark:text-stone-400">
+          <h3 className="zb-label mb-1.5 text-[11px] tracking-[.16em] text-faint">
             {STR.kinship.pathLabel}
           </h3>
           <div className="flex flex-wrap items-center gap-1.5">
@@ -80,9 +80,9 @@ export function KinshipResultView({ result, tree, onPathClick }: KinshipResultVi
                 <span key={`${p.id}-${i}`} className="flex items-center gap-1.5">
                   {i > 0 &&
                     (ascending ? (
-                      <ArrowUpRight size={15} aria-hidden="true" className="shrink-0 text-teal-600" />
+                      <ArrowUpRight size={15} aria-hidden="true" className="shrink-0 text-male" />
                     ) : (
-                      <ArrowDownRight size={15} aria-hidden="true" className="shrink-0 text-rose-500" />
+                      <ArrowDownRight size={15} aria-hidden="true" className="shrink-0 text-goldd" />
                     ))}
                   <PathChip person={p} onClick={() => onPathClick(p.id)} isApex={interiorApex && i === apex} />
                 </span>

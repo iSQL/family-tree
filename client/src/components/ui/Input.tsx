@@ -1,7 +1,7 @@
 import { forwardRef, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react';
 
 export const FIELD_CLASSES =
-  'w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800 placeholder:text-stone-400 outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-600/30 disabled:opacity-50 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100 dark:placeholder:text-stone-500';
+  'w-full rounded-[9px] border border-line bg-bg px-3 py-2 text-base text-ink placeholder:text-faint outline-none focus:border-gold focus:ring-2 focus:ring-gold/30 disabled:opacity-50';
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
   function Input({ className = '', ...rest }, ref) {
@@ -29,11 +29,11 @@ export function Field({
 }) {
   return (
     <label className={`block ${className}`}>
-      <span className="mb-1 block text-xs font-semibold tracking-wide text-stone-500 uppercase dark:text-stone-400">
+      <span className="zb-label mb-1 block text-[11px] tracking-[.16em] text-faint">
         {label}
       </span>
       {children}
-      {error ? <span className="mt-1 block text-xs text-red-600 dark:text-red-400">{error}</span> : null}
+      {error ? <span className="mt-1 block text-xs text-danger">{error}</span> : null}
     </label>
   );
 }

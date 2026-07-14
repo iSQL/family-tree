@@ -25,13 +25,13 @@ function PersonChip({ person, onClick, badge }: { person: PersonSlim; onClick: (
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-[40px] max-w-full cursor-pointer items-center gap-1.5 rounded-full border border-stone-300 bg-white py-1 pr-3 pl-1 text-sm hover:border-amber-600 hover:bg-amber-50 dark:border-stone-600 dark:bg-stone-800 dark:hover:bg-stone-700"
+      className="flex min-h-[40px] max-w-full cursor-pointer items-center gap-1.5 rounded-full border border-line bg-bg py-1 pr-3 pl-1 text-sm text-ink hover:border-gold"
     >
       <Avatar person={person} size={28} />
       <span className="truncate">
         {person.first_name} {person.last_name}
       </span>
-      {badge && <span className="shrink-0 text-xs text-stone-400">({badge})</span>}
+      {badge && <span className="shrink-0 text-xs text-faint">({badge})</span>}
     </button>
   );
 }
@@ -39,7 +39,7 @@ function PersonChip({ person, onClick, badge }: { person: PersonSlim; onClick: (
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section>
-      <h3 className="mb-1.5 text-xs font-semibold tracking-wide text-stone-500 uppercase dark:text-stone-400">
+      <h3 className="zb-label mb-1.5 text-[11px] tracking-[.16em] text-faint">
         {title}
       </h3>
       {children}
@@ -95,20 +95,20 @@ export function PersonDetailContent({ person, onPersonClick, onShowInTree, onDel
       <div className="flex items-center gap-4">
         <Avatar person={person} size={88} />
         <div className="min-w-0">
-          <h2 className="text-lg leading-tight font-bold">
+          <h2 className="font-display text-xl leading-tight font-normal text-heading">
             {person.first_name} {person.last_name}
             {person.title && (
-              <span className="ml-1.5 text-sm font-normal text-stone-500 dark:text-stone-400">{person.title}</span>
+              <span className="ml-1.5 font-sans text-sm text-muted">{person.title}</span>
             )}
           </h2>
           {person.maiden_name && (
-            <p className="text-sm text-stone-500 dark:text-stone-400">
+            <p className="text-sm text-muted">
               {STR.person.maidenShort} {person.maiden_name}
             </p>
           )}
-          {years && <p className="text-sm text-stone-500 dark:text-stone-400">{years}</p>}
+          {years && <p className="text-sm text-muted">{years}</p>}
           {person.birth_place && (
-            <p className="text-sm text-stone-500 dark:text-stone-400">{person.birth_place}</p>
+            <p className="text-sm text-muted">{person.birth_place}</p>
           )}
         </div>
       </div>
@@ -193,7 +193,7 @@ export function PersonDetailContent({ person, onPersonClick, onShowInTree, onDel
             {person.mother && <PersonChip person={person.mother} onClick={() => onPersonClick(person.mother!.id)} />}
           </div>
         ) : (
-          <p className="text-sm text-stone-400">{STR.common.none}</p>
+          <p className="text-sm text-faint">{STR.common.none}</p>
         )}
       </Section>
 
@@ -225,9 +225,9 @@ export function PersonDetailContent({ person, onPersonClick, onShowInTree, onDel
                   {u.partner ? (
                     <PersonChip person={u.partner} onClick={() => onPersonClick(u.partner!.id)} />
                   ) : (
-                    <span className="text-sm text-stone-400">{STR.union.unknownPartner}</span>
+                    <span className="text-sm text-faint">{STR.union.unknownPartner}</span>
                   )}
-                  <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">{unionSummary(u)}</p>
+                  <p className="mt-0.5 text-xs text-muted">{unionSummary(u)}</p>
                 </div>
                 {!readonly && (
                   <>
@@ -237,7 +237,7 @@ export function PersonDetailContent({ person, onPersonClick, onShowInTree, onDel
                       onClick={() => setEditUnion(u)}
                       disabled={!online}
                       title={offlineTitle}
-                      className="cursor-pointer rounded-md p-2.5 text-stone-400 hover:bg-stone-200/70 hover:text-stone-700 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-stone-700 dark:hover:text-stone-200"
+                      className="cursor-pointer rounded-md p-2.5 text-faint hover:bg-surface2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       <Pencil size={14} />
                     </button>
@@ -247,7 +247,7 @@ export function PersonDetailContent({ person, onPersonClick, onShowInTree, onDel
                       onClick={() => setDeleteUnionTarget(u)}
                       disabled={!online}
                       title={offlineTitle}
-                      className="cursor-pointer rounded-md p-2.5 text-stone-400 hover:bg-red-100 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-red-950 dark:hover:text-red-400"
+                      className="cursor-pointer rounded-md p-2.5 text-faint hover:bg-surface2 hover:text-danger disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -273,7 +273,7 @@ export function PersonDetailContent({ person, onPersonClick, onShowInTree, onDel
       {/* Beleške */}
       {person.notes && (
         <Section title={STR.person.notes}>
-          <p className="text-sm whitespace-pre-wrap text-stone-600 dark:text-stone-300">{person.notes}</p>
+          <p className="text-base whitespace-pre-wrap text-muted">{person.notes}</p>
         </Section>
       )}
 

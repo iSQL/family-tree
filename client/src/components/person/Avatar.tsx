@@ -8,9 +8,9 @@ export interface AvatarPerson {
 }
 
 const GENDER_BG: Record<Gender, string> = {
-  M: 'bg-cyan-700 dark:bg-cyan-600',
-  F: 'bg-rose-700 dark:bg-rose-600',
-  U: 'bg-stone-500 dark:bg-stone-600',
+  M: 'bg-male',
+  F: 'bg-female',
+  U: 'bg-unknown',
 };
 
 function initials(p: AvatarPerson): string {
@@ -37,7 +37,7 @@ export function Avatar({
         width={size}
         height={size}
         loading="lazy"
-        className={`shrink-0 rounded-full bg-stone-200 object-cover dark:bg-stone-700 ${className}`}
+        className={`shrink-0 rounded-full bg-surface2 object-cover ${className}`}
         style={{ width: size, height: size }}
       />
     );
@@ -45,7 +45,7 @@ export function Avatar({
   return (
     <span
       aria-hidden="true"
-      className={`flex shrink-0 items-center justify-center rounded-full font-semibold text-white select-none ${GENDER_BG[person.gender]} ${className}`}
+      className={`flex shrink-0 items-center justify-center rounded-full font-display text-white select-none ${GENDER_BG[person.gender]} ${className}`}
       style={{ width: size, height: size, fontSize: Math.max(10, Math.round(size * 0.38)) }}
     >
       {initials(person)}

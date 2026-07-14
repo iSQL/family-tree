@@ -30,20 +30,20 @@ export function Dialog({ open, onClose, title, children, footer, maxWidthClass =
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden="true" />
+      <div className="absolute inset-0 bg-[rgba(15,25,45,.5)]" onClick={onClose} aria-hidden="true" />
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`relative max-h-[90dvh] w-full ${maxWidthClass} overflow-y-auto rounded-t-2xl border-t border-stone-200 bg-white p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-xl sm:rounded-xl sm:border sm:pb-4 dark:border-stone-700 dark:bg-stone-900`}
+        className={`relative max-h-[90dvh] w-full ${maxWidthClass} overflow-y-auto rounded-t-[22px] border-t border-line bg-surface p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-[0_24px_60px_-30px_rgba(20,30,50,.6)] sm:rounded-2xl sm:border sm:pb-4`}
       >
         <div className="mb-3 flex items-center justify-between gap-4">
-          <h2 className="text-base font-semibold">{title}</h2>
+          <h2 className="font-display text-xl font-normal text-heading">{title}</h2>
           <button
             type="button"
             onClick={onClose}
             aria-label={STR.common.close}
-            className="-mr-1 cursor-pointer rounded-md p-2 text-stone-500 hover:bg-stone-200/70 dark:hover:bg-stone-700/70"
+            className="-mr-1 cursor-pointer rounded-md p-2 text-muted hover:bg-surface2"
           >
             <X size={20} />
           </button>
@@ -92,7 +92,7 @@ export function ConfirmDialog({
         </>
       }
     >
-      <p className="text-sm text-stone-600 dark:text-stone-300">{text}</p>
+      <p className="text-base text-muted">{text}</p>
     </Dialog>
   );
 }

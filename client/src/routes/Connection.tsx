@@ -53,7 +53,7 @@ export default function ConnectionPage() {
   if (isError || !tree) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
-        <p className="text-sm text-stone-600 dark:text-stone-300">{STR.common.error}</p>
+        <p className="text-base text-muted">{STR.common.error}</p>
         <Button onClick={() => void refetch()}>{STR.common.retry}</Button>
       </div>
     );
@@ -74,7 +74,7 @@ export default function ConnectionPage() {
             : STR.kinship.connectionUnavailable;
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
-        <p className="text-sm text-stone-600 dark:text-stone-300">{message}</p>
+        <p className="text-base text-muted">{message}</p>
         <Button onClick={() => navigate(backHref)}>{STR.kinship.backToCalculator}</Button>
       </div>
     );
@@ -83,26 +83,26 @@ export default function ConnectionPage() {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {/* Zaglavlje: povratak + termin + rečenica */}
-      <div className="flex flex-col gap-1.5 border-b border-stone-200 bg-white px-3 py-2 dark:border-stone-700 dark:bg-stone-800">
+      <div className="flex flex-col gap-1.5 border-b border-line bg-surface px-3 py-2">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
           <Link
             to={backHref}
-            className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-stone-600 hover:bg-stone-200/70 hover:text-stone-900 dark:text-stone-300 dark:hover:bg-stone-700 dark:hover:text-stone-100"
+            className="zb-label flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted hover:bg-surface2 hover:text-ink"
           >
             <ArrowLeft size={16} aria-hidden="true" />
             <span className="hidden sm:inline">{STR.kinship.backToCalculator}</span>
           </Link>
           {result.term !== null && (
-            <span className="rounded-full bg-amber-600 px-3 py-1 text-sm font-semibold text-white">
+            <span className="font-display rounded-full bg-navy px-3 py-0.5 text-base text-onnav dark:bg-activebg dark:text-activefg">
               {result.term}
             </span>
           )}
-          <p className="min-w-0 flex-1 truncate text-sm font-medium" title={result.description}>
+          <p className="min-w-0 flex-1 truncate text-base text-ink" title={result.description}>
             {result.description}
           </p>
           <Link
             to={`/settings/poster?scope=kinship&a=${aId}&b=${bId}&line=${lineIndex}`}
-            className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-stone-600 hover:bg-stone-200/70 hover:text-stone-900 dark:text-stone-300 dark:hover:bg-stone-700 dark:hover:text-stone-100"
+            className="zb-label flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted hover:bg-surface2 hover:text-ink"
             title={STR.poster.title}
           >
             <Printer size={16} aria-hidden="true" />
@@ -113,15 +113,15 @@ export default function ConnectionPage() {
         {/* Prebacivanje linija (dvostruko/višestruko srodstvo) */}
         {lines.length > 1 && (
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-stone-400">{STR.kinship.multiNote}</span>
+            <span className="text-xs text-faint">{STR.kinship.multiNote}</span>
             {lines.map((ln, i) => (
               <Link
                 key={i}
                 to={`/connection?a=${aId}&b=${bId}&line=${i}`}
-                className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+                className={`rounded-full border px-2.5 py-0.5 text-xs ${
                   i === lineIndex
-                    ? 'border-amber-500 bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300'
-                    : 'border-stone-300 text-stone-600 hover:bg-stone-100 dark:border-stone-600 dark:text-stone-300 dark:hover:bg-stone-700'
+                    ? 'border-gold bg-activebg text-activefg'
+                    : 'border-line text-muted hover:bg-surface2'
                 }`}
                 title={ln.viaLabel ? `${STR.kinship.via} ${ln.viaLabel}` : undefined}
               >

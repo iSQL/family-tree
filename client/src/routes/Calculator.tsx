@@ -43,7 +43,7 @@ export default function CalculatorPage() {
   if (isError || !tree) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
-        <p className="text-sm text-stone-600 dark:text-stone-300">{STR.common.error}</p>
+        <p className="text-base text-muted">{STR.common.error}</p>
         <Button onClick={() => void refetch()}>{STR.common.retry}</Button>
       </div>
     );
@@ -52,7 +52,7 @@ export default function CalculatorPage() {
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="mx-auto w-full max-w-2xl space-y-4 p-4">
-        <h1 className="text-lg font-bold">{STR.kinship.title}</h1>
+        <h1 className="font-display text-2xl font-normal text-heading">{STR.kinship.title}</h1>
 
         <Card className="p-4">
           <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-end">
@@ -88,11 +88,11 @@ export default function CalculatorPage() {
         </Card>
 
         {aId !== null && bId !== null && aId === bId ? (
-          <p className="px-1 text-sm text-stone-500 dark:text-stone-400">{STR.kinship.samePerson}</p>
+          <p className="px-1 text-sm text-muted">{STR.kinship.samePerson}</p>
         ) : results === null ? (
-          <p className="px-1 text-sm text-stone-500 dark:text-stone-400">{STR.kinship.pickBoth}</p>
+          <p className="px-1 text-sm text-muted">{STR.kinship.pickBoth}</p>
         ) : results === 'error' ? (
-          <p className="px-1 text-sm text-red-600 dark:text-red-400">{STR.kinship.error}</p>
+          <p className="px-1 text-sm text-danger">{STR.kinship.error}</p>
         ) : (
           <Card className="p-5">
             <KinshipResults

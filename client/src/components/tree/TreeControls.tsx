@@ -47,8 +47,8 @@ export function TreeControls({
 
       {/* Stepper potomaka — sakriven kad glavna osoba nema potomaka (nema šta da se filtrira). */}
       {maxProgeny > 0 && (
-        <div className="flex items-center gap-1 rounded-lg bg-white/90 px-2 py-1 shadow-lg dark:bg-stone-800/90">
-          <span className="text-xs font-medium text-stone-600 dark:text-stone-300">
+        <div className="flex items-center gap-1 rounded-[9px] border border-line bg-surface/95 px-2 py-1 shadow-[0_6px_18px_-6px_rgba(20,30,50,.4)]">
+          <span className="zb-label text-[11px] text-muted">
             {STR.tree.descendants}
           </span>
           <Button

@@ -187,7 +187,7 @@ export default function PersonFormPage() {
   if (isEdit && (personError || !editing)) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6">
-        <p className="text-sm text-stone-500 dark:text-stone-400">{STR.person.notFound}</p>
+        <p className="text-base text-muted">{STR.person.notFound}</p>
         <Button variant="secondary" onClick={() => navigate('/')}>
           {STR.common.backToTree}
         </Button>
@@ -206,7 +206,7 @@ export default function PersonFormPage() {
             <ArrowLeft size={16} aria-hidden="true" />
             {STR.common.back}
           </Button>
-          <h1 className="text-lg font-bold">
+          <h1 className="font-display text-xl font-normal text-heading">
             {isEdit ? STR.person.editTitle : newPersonTitle(tree, childOf, spouseOf, parentOf)}
           </h1>
         </div>

@@ -43,15 +43,15 @@ export function KinshipPanel({ tree, selectedIds, onRemove, onSwap, onClear, onE
 
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center p-3">
-      <div className="pointer-events-auto flex max-h-[60vh] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-stone-200 bg-white shadow-2xl dark:border-stone-700 dark:bg-stone-800">
+      <div className="pointer-events-auto flex max-h-[60vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_16px_40px_-16px_rgba(20,30,50,.55)]">
         {/* Zaglavlje */}
-        <div className="flex items-center justify-between border-b border-stone-200 px-4 py-2.5 dark:border-stone-700">
-          <h2 className="text-sm font-semibold">{STR.kinship.title}</h2>
+        <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
+          <h2 className="zb-label text-[11px] tracking-[.22em] text-goldd">{STR.kinship.title}</h2>
           <button
             type="button"
             aria-label={STR.common.close}
             onClick={onExit}
-            className="cursor-pointer rounded-md p-1.5 text-stone-400 hover:bg-stone-200/70 hover:text-stone-700 dark:hover:bg-stone-700 dark:hover:text-stone-200"
+            className="cursor-pointer rounded-md p-1.5 text-faint hover:bg-surface2 hover:text-ink"
           >
             <X size={18} />
           </button>
@@ -71,12 +71,12 @@ export function KinshipPanel({ tree, selectedIds, onRemove, onSwap, onClear, onE
                       aria-label={STR.kinship.swap}
                       title={STR.kinship.swap}
                       onClick={onSwap}
-                      className="cursor-pointer rounded-full p-1.5 text-stone-400 hover:bg-stone-200/70 hover:text-stone-700 dark:hover:bg-stone-700 dark:hover:text-stone-200"
+                      className="cursor-pointer rounded-full p-1.5 text-faint hover:bg-surface2 hover:text-ink"
                     >
                       <ArrowLeftRight size={16} />
                     </button>
                   )}
-                  <span className="flex items-center gap-1.5 rounded-full bg-teal-600/10 py-1 pr-1 pl-1 text-sm text-teal-800 ring-1 ring-teal-600/40 dark:text-teal-200">
+                  <span className="flex items-center gap-1.5 rounded-full border border-line bg-bg py-1 pr-1 pl-1 text-sm text-ink">
                     <Avatar person={p} size={24} />
                     <span className="truncate pl-0.5">
                       {p.first_name} {p.last_name}
@@ -85,7 +85,7 @@ export function KinshipPanel({ tree, selectedIds, onRemove, onSwap, onClear, onE
                       type="button"
                       aria-label={STR.common.delete}
                       onClick={() => onRemove(id)}
-                      className="cursor-pointer rounded-full p-1 hover:bg-teal-600/20"
+                      className="cursor-pointer rounded-full p-1 hover:bg-surface2"
                     >
                       <X size={14} />
                     </button>
@@ -97,13 +97,13 @@ export function KinshipPanel({ tree, selectedIds, onRemove, onSwap, onClear, onE
 
           {/* Stanje / rezultat */}
           {selectedIds.length === 0 ? (
-            <p className="text-sm text-stone-500 dark:text-stone-400">{STR.kinship.selectFirst}</p>
+            <p className="text-sm text-muted">{STR.kinship.selectFirst}</p>
           ) : selectedIds.length === 1 ? (
-            <p className="text-sm text-stone-500 dark:text-stone-400">{STR.kinship.selectSecond}</p>
+            <p className="text-sm text-muted">{STR.kinship.selectSecond}</p>
           ) : aId === bId ? (
-            <p className="text-sm text-stone-500 dark:text-stone-400">{STR.kinship.samePerson}</p>
+            <p className="text-sm text-muted">{STR.kinship.samePerson}</p>
           ) : results === 'error' || results === null ? (
-            <p className="text-sm text-red-600 dark:text-red-400">{STR.kinship.error}</p>
+            <p className="text-sm text-danger">{STR.kinship.error}</p>
           ) : (
             <KinshipResults
               results={results}

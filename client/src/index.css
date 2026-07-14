@@ -1,10 +1,112 @@
+/* Brend fontovi (zabari.net): Marcellus (naslovi), Marcellus SC (etikete), Cormorant Garamond (tekst) */
+@import '@fontsource/marcellus/400.css';
+@import '@fontsource/marcellus-sc/400.css';
+@import '@fontsource/cormorant-garamond/400.css';
+@import '@fontsource/cormorant-garamond/400-italic.css';
+@import '@fontsource/cormorant-garamond/500.css';
+@import '@fontsource/cormorant-garamond/600.css';
+@import '@fontsource/cormorant-garamond/700.css';
+
 @import "tailwindcss";
 
 /* Dark mode preko .dark klase na <html> */
 @custom-variant dark (&:where(.dark, .dark *));
 
-@theme {
-  --font-sans: ui-sans-serif, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+/* ---------------------------------------------------------------- */
+/* zabari.net paleta — CSS promenljive koje se menjaju sa temom      */
+/* ---------------------------------------------------------------- */
+
+:root {
+  --zb-bg: #f5ebe0;
+  --zb-surface: #faf6f0;
+  --zb-surface2: #efe6da;
+  --zb-cardbg: #ffffff;
+  --zb-ink: #2b2b2b;
+  --zb-muted: #6e6558;
+  --zb-faint: #9a8e7e;
+  --zb-border: #e2d7c7;
+  --zb-heading: #1d3557;
+  --zb-activebg: #f2e6ce;
+  --zb-activefg: #8a6d1f;
+  --zb-navy-line: #1d3557;
+  --zb-sel-ring: rgba(29, 53, 87, 0.16);
+  --zb-treeline: #dac9b2;
+  --zb-goldline: #b89040;
+  --zb-male: #294d75;
+  --zb-female: #b0862f;
+  --zb-unknown: #8a7c6a;
+  --zb-danger: #a23b32;
+}
+
+.dark {
+  --zb-bg: #14294a;
+  --zb-surface: #1d3557;
+  --zb-surface2: #24406b;
+  --zb-cardbg: #213b60;
+  --zb-ink: #f1e9de;
+  --zb-muted: #b7c1d2;
+  --zb-faint: #8595ad;
+  --zb-border: #2e4c74;
+  --zb-heading: #f5ebe0;
+  --zb-activebg: #33507a;
+  --zb-activefg: #e4c378;
+  --zb-navy-line: #7d9bc0;
+  --zb-sel-ring: rgba(125, 155, 192, 0.28);
+  --zb-treeline: #39567f;
+  --zb-goldline: #e4c378;
+  --zb-male: #5f83ad;
+  --zb-female: #d0aa5b;
+  --zb-unknown: #93a2b7;
+  --zb-danger: #e08a7e;
+}
+
+@theme inline {
+  /* Semantičke boje — prate temu preko :root/.dark promenljivih */
+  --color-bg: var(--zb-bg);
+  --color-surface: var(--zb-surface);
+  --color-surface2: var(--zb-surface2);
+  --color-cardbg: var(--zb-cardbg);
+  --color-ink: var(--zb-ink);
+  --color-muted: var(--zb-muted);
+  --color-faint: var(--zb-faint);
+  --color-line: var(--zb-border);
+  --color-heading: var(--zb-heading);
+  --color-activebg: var(--zb-activebg);
+  --color-activefg: var(--zb-activefg);
+  --color-male: var(--zb-male);
+  --color-female: var(--zb-female);
+  --color-unknown: var(--zb-unknown);
+  --color-danger: var(--zb-danger);
+
+  /* Fiksne brend boje */
+  --color-navy: #1d3557;
+  --color-navy2: #162e4e;
+  --color-gold: #c29b47;
+  --color-goldd: #b89040;
+  --color-cream: #f5ebe0;
+  --color-onnav: #f5ebe0;
+  --color-ongold: #241a05;
+
+  /* Fontovi */
+  --font-sans: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --font-display: 'Marcellus', Georgia, serif;
+  --font-label: 'Marcellus SC', Georgia, serif;
+
+  /* Cormorant Garamond je vizuelno sitan — blago uvećana skala */
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.35;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.45;
+  --text-base: 1.0625rem;
+  --text-base--line-height: 1.5;
+  --text-lg: 1.1875rem;
+  --text-lg--line-height: 1.5;
+  --text-xl: 1.375rem;
+  --text-xl--line-height: 1.4;
+  --text-2xl: 1.625rem;
+  --text-2xl--line-height: 1.3;
+  --text-3xl: 2rem;
+  --text-3xl--line-height: 1.2;
 }
 
 @layer base {
@@ -15,12 +117,20 @@
   }
 
   body {
-    @apply bg-stone-100 font-sans text-stone-800 antialiased dark:bg-stone-950 dark:text-stone-100;
+    @apply bg-bg font-sans text-ink antialiased;
   }
 
   ::selection {
-    @apply bg-amber-200 text-stone-900;
+    background: #c29b47;
+    color: #162e4e;
   }
+}
+
+/* Etiketa u brend stilu — Marcellus SC, verzal, prošireno */
+@utility zb-label {
+  font-family: var(--font-label);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 /* ---------------------------------------------------------------- */
@@ -66,26 +176,17 @@
   width: 100%;
   height: 100%;
   max-height: none;
-  background-color: #f5f5f4; /* stone-100 */
-  color: #44403c; /* stone-700 */
-}
-
-.dark .f3.ft-tree {
-  background-color: #1c1917; /* stone-900 */
-  color: #d6d3d1; /* stone-300 */
+  background-color: var(--zb-bg);
+  color: var(--zb-ink);
 }
 
 /* Linije veza — lib ih crta sa stroke="#fff" atributom; CSS pravilo ga nadjačava. */
 .f3.ft-tree path.link {
-  stroke: #a8a29e; /* stone-400 */
-}
-
-.dark .f3.ft-tree path.link {
-  stroke: #57534e; /* stone-600 */
+  stroke: var(--zb-treeline);
 }
 
 .f3.ft-tree .link.f3-path-to-main {
-  stroke: #b45309; /* amber-700 */
+  stroke: var(--zb-goldline);
 }
 
 /* ------------------------- */
@@ -100,10 +201,10 @@
   min-height: 64px;
   padding: 8px 12px 8px 10px;
   border-radius: 10px;
-  border-left: 5px solid #a8a29e; /* stone-400, pol nepoznat */
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.18);
-  color: #292524; /* stone-800 */
+  border-left: 5px solid var(--zb-unknown);
+  background: var(--zb-cardbg);
+  box-shadow: 0 2px 6px rgb(20 30 50 / 0.14);
+  color: var(--zb-ink);
   text-align: left;
   overflow: hidden;
   user-select: none;
@@ -111,29 +212,27 @@
 }
 
 .dark .ft-card {
-  background: #292524; /* stone-800 */
-  color: #f5f5f4;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.5);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.45);
 }
 
 .ft-card-m {
-  border-left-color: #0e7490; /* cyan-700 */
+  border-left-color: var(--zb-male);
 }
 
 .ft-card-f {
-  border-left-color: #be185d; /* rose-700 */
+  border-left-color: var(--zb-female);
 }
 
 .ft-card-main {
-  outline: 3px solid #d97706; /* amber-600 */
-  outline-offset: 1px;
+  outline: 3px solid #c29b47;
+  outline-offset: 2px;
 }
 
 /* Izbor za kalkulator srodstva (mod „Srodstvo") — pobeđuje nad .ft-card-main */
 .ft-card-selected {
-  outline: 3px solid #0d9488; /* teal-600 */
-  outline-offset: 1px;
-  box-shadow: 0 0 0 5px rgb(13 148 136 / 0.2);
+  outline: 3px solid var(--zb-navy-line);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px var(--zb-sel-ring);
 }
 
 .ft-card-img,
@@ -143,12 +242,7 @@
   flex: 0 0 auto;
   border-radius: 9999px;
   object-fit: cover;
-  background: #e7e5e4;
-}
-
-.dark .ft-card-img,
-.dark .ft-card-ph {
-  background: #44403c;
+  background: var(--zb-surface2);
 }
 
 .ft-card-text {
@@ -156,9 +250,9 @@
 }
 
 .ft-card-name {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
-  line-height: 1.25;
+  line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -167,21 +261,13 @@
 }
 
 .ft-card-title {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 400;
-  color: #78716c; /* stone-500 */
-}
-
-.dark .ft-card-title {
-  color: #a8a29e;
+  color: var(--zb-muted);
 }
 
 .ft-card-years {
-  font-size: 11px;
-  color: #78716c;
-  margin-top: 2px;
-}
-
-.dark .ft-card-years {
-  color: #a8a29e;
+  font-size: 13px;
+  color: var(--zb-muted);
+  margin-top: 1px;
 }

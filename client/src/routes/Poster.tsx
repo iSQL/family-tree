@@ -183,7 +183,7 @@ function OptionRow({
         name={name}
         checked={checked}
         onChange={onChange}
-        className="size-4 shrink-0 cursor-pointer accent-amber-700"
+        className="size-4 shrink-0 cursor-pointer accent-[#1d3557] dark:accent-[#c29b47]"
       />
       <span>{label}</span>
     </label>
@@ -197,10 +197,10 @@ function SegButton({ active, onClick, children }: { active: boolean; onClick: ()
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+      className={`zb-label cursor-pointer rounded-[9px] border px-3 py-1.5 text-[11px] transition-colors ${
         active
-          ? 'border-amber-700 bg-amber-700 text-white'
-          : 'border-stone-300 bg-white text-stone-700 hover:bg-stone-50 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700'
+          ? 'border-gold bg-navy text-onnav ring-2 ring-gold ring-offset-2 ring-offset-surface'
+          : 'border-line bg-bg text-ink hover:border-gold/50 hover:bg-surface2'
       }`}
     >
       {children}
@@ -210,7 +210,7 @@ function SegButton({ active, onClick, children }: { active: boolean; onClick: ()
 
 /** Mala labela iznad kontrole u panelu. */
 function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <span className="mb-1 block text-xs font-medium text-stone-500 dark:text-stone-400">{children}</span>;
+  return <span className="zb-label mb-1 block text-[11px] tracking-[.16em] text-faint">{children}</span>;
 }
 
 function PosterPageInner({ tree }: { tree: TreeResponse }) {
@@ -345,7 +345,7 @@ function PosterPageInner({ tree }: { tree: TreeResponse }) {
   }, [finalTree, anchor, scope, viewDepth]);
 
   if (mainSel === undefined) {
-    return <p className="p-6 text-sm text-stone-500 dark:text-stone-400">{STR.poster.emptyTree}</p>;
+    return <p className="p-6 text-base text-muted">{STR.poster.emptyTree}</p>;
   }
 
   const rep = repId !== null ? byId.get(repId) : undefined;
@@ -400,11 +400,11 @@ function PosterPageInner({ tree }: { tree: TreeResponse }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
       {/* PANEL OPCIJA */}
-      <div className="w-full shrink-0 space-y-3.5 overflow-y-auto border-b border-stone-200 bg-stone-50 p-4 lg:w-[380px] lg:border-r lg:border-b-0 dark:border-stone-700 dark:bg-stone-900">
+      <div className="w-full shrink-0 space-y-3.5 overflow-y-auto border-b border-line bg-surface p-4 lg:w-[380px] lg:border-r lg:border-b-0">
         <div>
-          <div className="text-[11px] font-semibold tracking-wide text-stone-400">{STR.poster.kicker}</div>
-          <h1 className="mt-0.5 text-lg font-bold">{STR.poster.title}</h1>
-          <p className="mt-1.5 text-xs leading-relaxed text-stone-500 dark:text-stone-400">{STR.poster.intro}</p>
+          <div className="zb-label text-[11px] tracking-[.24em] text-goldd">{STR.poster.kicker}</div>
+          <h1 className="mt-0.5 font-display text-xl font-normal text-heading">{STR.poster.title}</h1>
+          <p className="mt-1.5 text-sm leading-relaxed text-muted">{STR.poster.intro}</p>
         </div>
 
         <Card>
@@ -489,15 +489,15 @@ function PosterPageInner({ tree }: { tree: TreeResponse }) {
 
             {/* 'selected': stanje izbora */}
             {scope === 'selected' && (
-              <div className="flex items-center gap-2 text-xs text-stone-600 dark:text-stone-300">
-                <span className="rounded-full bg-teal-100 px-2.5 py-1 font-semibold text-teal-800 dark:bg-teal-900 dark:text-teal-200">
+              <div className="flex items-center gap-2 text-xs text-muted">
+                <span className="zb-label rounded-full bg-activebg px-2.5 py-1 text-activefg">
                   {selection.size} {STR.poster.selectedCount}
                 </span>
                 {selection.size > 0 && (
                   <button
                     type="button"
                     onClick={() => setSelection(new Set())}
-                    className="inline-flex cursor-pointer items-center gap-1 text-stone-500 underline underline-offset-2 hover:text-stone-700 dark:hover:text-stone-200"
+                    className="inline-flex cursor-pointer items-center gap-1 text-muted underline underline-offset-2 hover:text-ink"
                   >
                     <X size={12} aria-hidden="true" />
                     {STR.poster.clearSelection}
@@ -560,9 +560,9 @@ function PosterPageInner({ tree }: { tree: TreeResponse }) {
               </div>
             )}
 
-            <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 dark:border-amber-900 dark:bg-amber-950/40">
-              <Info size={14} className="mt-0.5 shrink-0 text-amber-700 dark:text-amber-500" aria-hidden="true" />
-              <span className="text-xs leading-snug text-amber-800 dark:text-amber-300">
+            <div className="flex items-start gap-2 rounded-lg border border-line bg-activebg px-2.5 py-2">
+              <Info size={14} className="mt-0.5 shrink-0 text-activefg" aria-hidden="true" />
+              <span className="text-xs leading-snug text-activefg">
                 {scope === 'selected' && disconnected
                   ? STR.poster.selectionDisconnected
                   : scope === 'selected' && selection.size === 0
@@ -581,7 +581,7 @@ function PosterPageInner({ tree }: { tree: TreeResponse }) {
           <CardHeader title={STR.poster.formatSection} />
           <div className="space-y-3 p-4">
             <div>
-              <div className="mb-1.5 text-[11px] font-semibold tracking-wide text-stone-400">{STR.poster.paperSize}</div>
+              <div className="zb-label mb-1.5 text-[11px] tracking-[.16em] text-faint">{STR.poster.paperSize}</div>
               <div className="flex flex-wrap gap-1.5">
                 {(['A4', 'A3', 'A2', 'A1', 'tiling'] as const).map((p) => (
                   <SegButton key={p} active={paper === p} onClick={() => setPaper(p)}>
@@ -591,7 +591,7 @@ function PosterPageInner({ tree }: { tree: TreeResponse }) {
               </div>
             </div>
             <div>
-              <div className="mb-1.5 text-[11px] font-semibold tracking-wide text-stone-400">{STR.poster.orientation}</div>
+              <div className="zb-label mb-1.5 text-[11px] tracking-[.16em] text-faint">{STR.poster.orientation}</div>
               <div className="flex gap-1.5">
                 <SegButton active={orient === 'portrait'} onClick={() => setOrient('portrait')}>
                   {STR.poster.orientPortrait}
@@ -671,12 +671,12 @@ function PosterPageInner({ tree }: { tree: TreeResponse }) {
       </div>
 
       {/* PREGLED */}
-      <div className="flex flex-1 flex-col items-center gap-3.5 overflow-auto bg-stone-200 p-6 dark:bg-stone-800">
+      <div className="flex flex-1 flex-col items-center gap-3.5 overflow-auto bg-surface2 p-6">
         <div className="flex flex-wrap items-center justify-center gap-2">
-          <span className="rounded-full border border-stone-300 bg-white px-3 py-1 text-xs font-semibold text-stone-600 dark:border-stone-600 dark:bg-stone-900 dark:text-stone-300">
+          <span className="zb-label rounded-full border border-line bg-surface px-3 py-1 text-[11px] text-ink">
             {PAPER_LABEL[paper]}
           </span>
-          <span className="rounded-full border border-stone-300 bg-white px-3 py-1 text-xs text-stone-500 dark:border-stone-600 dark:bg-stone-900 dark:text-stone-400">
+          <span className="rounded-full border border-line bg-surface px-3 py-1 text-xs text-muted">
             {orient === 'portrait' ? STR.poster.orientPortrait : STR.poster.orientLandscape}
           </span>
           {scope === 'selected' && (
@@ -693,14 +693,14 @@ function PosterPageInner({ tree }: { tree: TreeResponse }) {
         {picking ? (
           // Režim izbora: interaktivno stablo (zum točkićem, prevlačenje, klik bira) —
           // isti prikaz kao glavna stranica stabla, pa se i veliko stablo lako pregleda.
-          <div className="relative min-h-[420px] w-full flex-1 self-stretch overflow-hidden rounded-xl border border-stone-300 shadow-2xl dark:border-stone-600">
+          <div className="relative min-h-[420px] w-full flex-1 self-stretch overflow-hidden rounded-xl border border-line shadow-2xl">
             <TreeCanvas
               tree={lineageTree}
               focusId={mainSel}
               onPersonClick={toggleSelect}
               selectedIds={[...selection]}
             />
-            <span className="pointer-events-none absolute top-2 left-2 rounded-full bg-teal-700/90 px-2.5 py-1 text-[11px] font-semibold text-white">
+            <span className="pointer-events-none absolute top-2 left-2 zb-label rounded-full bg-navy/90 px-2.5 py-1 text-[11px] text-onnav">
               {STR.poster.pickModeHint}
             </span>
           </div>
@@ -720,7 +720,7 @@ export default function PosterPage() {
   const { data: tree, isPending } = useTree();
   if (isPending) return <FullScreenSpinner />;
   if (!tree || tree.persons.length === 0) {
-    return <p className="p-6 text-sm text-stone-500 dark:text-stone-400">{STR.poster.emptyTree}</p>;
+    return <p className="p-6 text-base text-muted">{STR.poster.emptyTree}</p>;
   }
   return <PosterPageInner tree={tree} />;
 }

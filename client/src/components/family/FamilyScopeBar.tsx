@@ -23,10 +23,10 @@ export function FamilyScopeBar({ familyTree, onChange }: FamilyScopeBarProps) {
 
   return (
     <div className="flex items-center justify-between gap-2 px-1">
-      <h1 className="min-w-0 truncate text-base font-semibold">
+      <h1 className="min-w-0 truncate font-display text-lg font-normal text-heading">
         {STR.tree.familyLabel}
-        {label && <span className="ml-1 text-amber-700 dark:text-amber-400">{label}</span>}
-        <span className="ml-1.5 text-sm font-normal text-stone-400">
+        {label && <span className="ml-1 text-goldd">{label}</span>}
+        <span className="ml-1.5 font-sans text-sm text-faint">
           · {familyTree.persons.length} {STR.tree.members}
         </span>
       </h1>

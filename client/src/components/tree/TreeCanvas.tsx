@@ -42,9 +42,10 @@ function esc(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ESC_MAP[c] ?? c);
 }
 
-/** Rodni SVG placeholder (silueta) kad osoba nema sliku. */
+/** Rodni SVG placeholder (silueta) kad osoba nema sliku — boje prate temu. */
 function placeholderSvg(gender: F3Datum['data']['gender']): string {
-  const fill = gender === 'M' ? '#0e7490' : gender === 'F' ? '#be185d' : '#78716c';
+  const fill =
+    gender === 'M' ? 'var(--zb-male)' : gender === 'F' ? 'var(--zb-female)' : 'var(--zb-unknown)';
   return `<svg class="ft-card-ph" viewBox="0 0 44 44" aria-hidden="true">
     <circle cx="22" cy="22" r="22" fill="${fill}" opacity="0.15"/>
     <circle cx="22" cy="17" r="7" fill="${fill}"/>

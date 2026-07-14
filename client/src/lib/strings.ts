@@ -2,6 +2,12 @@
 export const STR = {
   appName: 'Porodično stablo',
 
+  brand: {
+    site: 'zabari.net',
+    municipality: 'Opština Žabari',
+    tagline: 'Mreža naše varoši',
+  },
+
   nav: {
     tree: 'Porodice',
     birthdays: 'Rođendani',

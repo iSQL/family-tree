@@ -34,10 +34,15 @@ export function FamilyChooser({ tree, onPick }: FamilyChooserProps) {
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="mx-auto w-full max-w-4xl space-y-4 p-4">
-        <div className="flex items-center gap-2 px-1">
-          <Users size={20} className="text-amber-700 dark:text-amber-500" aria-hidden="true" />
-          <h1 className="text-lg font-semibold">{STR.tree.chooseFamily}</h1>
-          <span className="text-sm text-stone-400">({families.length})</span>
+        <div className="px-1">
+          <div className="flex items-center gap-2.5">
+            <Users size={20} className="text-gold" aria-hidden="true" />
+            <h1 className="font-display text-2xl font-normal text-heading">{STR.tree.chooseFamily}</h1>
+            <span className="text-sm text-faint">({families.length})</span>
+          </div>
+          <div className="zb-label mt-0.5 text-[11px] tracking-[.24em] text-goldd">
+            {STR.brand.municipality}
+          </div>
         </div>
 
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -51,24 +56,24 @@ export function FamilyChooser({ tree, onPick }: FamilyChooserProps) {
                 <button
                   type="button"
                   onClick={() => onPick(fam.representativeId)}
-                  className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-stone-200 bg-white p-3 text-left shadow-sm transition-colors hover:border-amber-500 hover:bg-amber-50 dark:border-stone-700 dark:bg-stone-800 dark:hover:border-amber-500 dark:hover:bg-stone-700"
+                  className="flex w-full cursor-pointer items-center gap-3.5 rounded-2xl border border-line bg-cardbg p-4 text-left shadow-[0_6px_18px_-12px_rgba(20,30,50,.4)] transition-[border-color,transform] hover:-translate-y-0.5 hover:border-gold"
                 >
                   <Avatar person={rep} size={56} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="truncate font-semibold">{familyName(rep)}</span>
+                      <span className="truncate font-display text-lg text-heading">{familyName(rep)}</span>
                       {fam.designated && (
-                        <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                        <span className="zb-label inline-flex shrink-0 items-center gap-1 rounded-full bg-activebg px-2 py-0.5 text-[10px] tracking-[.06em] text-activefg">
                           <Crown size={10} aria-hidden="true" />
                           {STR.tree.designatedBadge}
                         </span>
                       )}
                     </div>
-                    <div className="truncate text-sm text-stone-600 dark:text-stone-300">
+                    <div className="truncate text-base text-muted">
                       {foundersLine(rep, co)}
                       {years && ` · ${years}`}
                     </div>
-                    <div className="mt-0.5 text-xs text-stone-400">
+                    <div className="zb-label mt-1 text-[11px] tracking-[.06em] text-faint">
                       {fam.size} {STR.tree.members}
                     </div>
                   </div>

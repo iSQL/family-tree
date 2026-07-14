@@ -110,7 +110,7 @@ export function PersonForm({
       </div>
 
       <fieldset>
-        <legend className="mb-1 block text-xs font-semibold tracking-wide text-stone-500 uppercase dark:text-stone-400">
+        <legend className="zb-label mb-1 block text-[11px] tracking-[.16em] text-faint">
           {STR.person.gender}
         </legend>
         <div className="flex gap-4">
@@ -120,7 +120,7 @@ export function PersonForm({
                 type="radio"
                 value={opt.value}
                 {...register('gender')}
-                className="accent-amber-700 dark:accent-amber-500"
+                className="accent-[#1d3557] dark:accent-[#c29b47]"
               />
               {opt.label}
             </label>
@@ -200,7 +200,7 @@ export function PersonForm({
 
       {/* Fotografija — samo za postojeću osobu (treba nam id za upload) */}
       <div>
-        <span className="mb-1 block text-xs font-semibold tracking-wide text-stone-500 uppercase dark:text-stone-400">
+        <span className="zb-label mb-1 block text-[11px] tracking-[.16em] text-faint">
           {STR.photo.dialogTitle}
         </span>
         {personId !== undefined && photo ? (
@@ -224,11 +224,11 @@ export function PersonForm({
             />
           </div>
         ) : (
-          <p className="text-sm text-stone-500 dark:text-stone-400">{STR.photo.saveFirst}</p>
+          <p className="text-sm text-muted">{STR.photo.saveFirst}</p>
         )}
       </div>
 
-      <div className="flex justify-end gap-2 border-t border-stone-200 pt-4 dark:border-stone-700">
+      <div className="flex justify-end gap-2 border-t border-line pt-4">
         <Button variant="secondary" onClick={onCancel} disabled={submitting}>
           {STR.common.cancel}
         </Button>

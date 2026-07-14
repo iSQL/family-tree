@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { TreeDeciduous } from 'lucide-react';
 import { apiFetch, ApiError } from '../api/client';
+import logoUrl from '../assets/zabari-logo.svg';
 import { useSession } from '../hooks/useSession';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -38,11 +38,19 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-dvh items-center justify-center p-4">
-      <Card className="w-full max-w-sm p-6">
-        <div className="mb-5 flex flex-col items-center gap-2 text-center">
-          <TreeDeciduous size={40} className="text-amber-700 dark:text-amber-400" aria-hidden="true" />
-          <h1 className="text-xl font-bold">{STR.appName}</h1>
-          <p className="text-sm text-stone-500 dark:text-stone-400">{STR.login.intro}</p>
+      <Card className="w-full max-w-sm p-7 text-center shadow-[0_24px_60px_-30px_rgba(20,30,50,.5)]">
+        <div className="mb-5 flex flex-col items-center gap-1.5">
+          <img
+            src={logoUrl}
+            alt=""
+            width={72}
+            height={72}
+            aria-hidden="true"
+            className="mb-2 rounded-full shadow-[0_4px_14px_-4px_rgba(20,30,50,.4)]"
+          />
+          <div className="zb-label text-[11px] tracking-[.28em] text-goldd">{STR.brand.municipality}</div>
+          <h1 className="font-display text-2xl font-normal text-heading">{STR.appName}</h1>
+          <p className="text-base text-muted">{STR.login.intro}</p>
         </div>
         <form
           onSubmit={(e) => {
@@ -60,10 +68,16 @@ export default function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <Button type="submit" className="w-full" disabled={login.isPending || password.trim() === ''}>
+          <Button
+            type="submit"
+            variant="gold"
+            className="w-full py-3 text-[13px] tracking-[.12em]"
+            disabled={login.isPending || password.trim() === ''}
+          >
             {STR.login.submit}
           </Button>
         </form>
+        <p className="mt-5 text-base text-faint italic">{STR.brand.tagline}</p>
       </Card>
     </div>
   );

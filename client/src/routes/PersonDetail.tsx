@@ -30,7 +30,7 @@ export default function PersonDetailPage() {
         {isPending ? (
           <FullScreenSpinner />
         ) : isError || !person ? (
-          <p className="text-sm text-stone-500 dark:text-stone-400">{STR.person.notFound}</p>
+          <p className="text-sm text-muted">{STR.person.notFound}</p>
         ) : (
           <PersonDetailContent
             person={person}

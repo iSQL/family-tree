@@ -26,7 +26,7 @@ export function KinshipResults({ results, tree, onPathClick, onShowConnection }:
   return (
     <div className="space-y-4">
       {multi && (
-        <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+        <p className="rounded-lg bg-activebg px-3 py-2 text-sm text-activefg">
           {STR.kinship.multiNote}
         </p>
       )}
@@ -36,15 +36,15 @@ export function KinshipResults({ results, tree, onPathClick, onShowConnection }:
         return (
           <div
             key={i}
-            className={multi ? 'rounded-xl border border-stone-200 p-4 dark:border-stone-700' : ''}
+            className={multi ? 'rounded-xl border border-line p-4' : ''}
           >
             {multi && (
               <div className="mb-2.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="rounded-full bg-stone-200 px-2 py-0.5 text-xs font-semibold text-stone-700 dark:bg-stone-700 dark:text-stone-200">
+                <span className="zb-label rounded-full bg-surface2 px-2 py-0.5 text-[11px] text-ink">
                   {i + 1}. {STR.kinship.lineWord}
                 </span>
                 {result.viaLabel && (
-                  <span className="text-xs text-stone-500 dark:text-stone-400">
+                  <span className="text-xs text-muted">
                     {STR.kinship.via} {result.viaLabel}
                   </span>
                 )}

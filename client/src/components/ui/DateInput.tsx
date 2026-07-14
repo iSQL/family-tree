@@ -86,7 +86,7 @@ export function DateInput({
         onFocus={() => setFocused(true)}
         onChange={(e) => commitText(e.target.value)}
         className={`${FIELD_CLASSES} pr-10 ${
-          invalid ? 'border-red-500 focus:border-red-500 focus:ring-red-500/30 dark:border-red-500' : ''
+          invalid ? 'border-[#a23b32] focus:border-[#a23b32] focus:ring-[#a23b32]/30' : ''
         }`}
       />
       <button
@@ -94,7 +94,7 @@ export function DateInput({
         disabled={disabled}
         aria-label={STR.person.pickDate}
         onClick={() => setOpen((o) => !o)}
-        className="absolute inset-y-0 right-0 flex items-center px-3 text-stone-400 hover:text-amber-700 disabled:opacity-50 dark:hover:text-amber-500"
+        className="absolute inset-y-0 right-0 flex items-center px-3 text-faint hover:text-goldd disabled:opacity-50"
       >
         <CalendarIcon size={16} aria-hidden="true" />
       </button>
@@ -107,7 +107,7 @@ export function DateInput({
 const WEEKDAYS = ['Pon', 'Uto', 'Sre', 'Čet', 'Pet', 'Sub', 'Ned'] as const;
 
 const ARROW_CLASSES =
-  'rounded-md p-1.5 text-stone-500 hover:bg-stone-100 hover:text-stone-800 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100';
+  'rounded-md p-1.5 text-muted hover:bg-surface2 hover:text-ink';
 
 function Calendar({ value, onSelect }: { value: string; onSelect: (iso: string) => void }) {
   const now = new Date();
@@ -140,7 +140,7 @@ function Calendar({ value, onSelect }: { value: string; onSelect: (iso: string) 
     now.getFullYear() === year && now.getMonth() + 1 === month && now.getDate() === d;
 
   return (
-    <div className="absolute top-full left-0 z-40 mt-1 w-72 rounded-lg border border-stone-200 bg-white p-3 shadow-lg dark:border-stone-700 dark:bg-stone-900">
+    <div className="absolute top-full left-0 z-40 mt-1 w-72 rounded-xl border border-line bg-surface p-3 shadow-[0_16px_40px_-16px_rgba(20,30,50,.45)]">
       <div className="mb-2 flex items-center gap-1">
         <button type="button" aria-label="Prethodni mesec" onMouseDown={(e) => e.preventDefault()} onClick={prevMonth} className={ARROW_CLASSES}>
           <ChevronLeft size={16} />
@@ -148,7 +148,7 @@ function Calendar({ value, onSelect }: { value: string; onSelect: (iso: string) 
         <select
           value={month}
           onChange={(e) => setMonth(Number(e.target.value))}
-          className="flex-1 rounded-md border border-stone-300 bg-white px-2 py-1 text-sm capitalize outline-none focus:border-amber-600 dark:border-stone-600 dark:bg-stone-800"
+          className="flex-1 rounded-md border border-line bg-bg px-2 py-1 text-sm text-ink capitalize outline-none focus:border-gold"
         >
           {MONTHS_SR.map((m, i) => (
             <option key={m} value={i + 1}>
@@ -164,14 +164,14 @@ function Calendar({ value, onSelect }: { value: string; onSelect: (iso: string) 
           onKeyDown={(e) => {
             if (e.key === 'Enter') e.preventDefault();
           }}
-          className="w-20 rounded-md border border-stone-300 bg-white px-2 py-1 text-sm outline-none focus:border-amber-600 dark:border-stone-600 dark:bg-stone-800"
+          className="w-20 rounded-md border border-line bg-bg px-2 py-1 text-sm text-ink outline-none focus:border-gold"
         />
         <button type="button" aria-label="Sledeći mesec" onMouseDown={(e) => e.preventDefault()} onClick={nextMonth} className={ARROW_CLASSES}>
           <ChevronRight size={16} />
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-0.5 text-center text-xs font-medium text-stone-400">
+      <div className="zb-label grid grid-cols-7 gap-0.5 text-center text-[11px] text-faint">
         {WEEKDAYS.map((w) => (
           <div key={w} className="py-1">
             {w}
@@ -191,10 +191,10 @@ function Calendar({ value, onSelect }: { value: string; onSelect: (iso: string) 
               onClick={() => onSelect(`${String(year).padStart(4, '0')}-${pad2(month)}-${pad2(d)}`)}
               className={`rounded-md py-1.5 text-sm transition-colors ${
                 isSelected(d)
-                  ? 'bg-amber-600 text-white hover:bg-amber-600'
+                  ? 'bg-navy text-onnav hover:bg-navy'
                   : isToday(d)
-                    ? 'font-bold text-amber-700 hover:bg-amber-100 dark:text-amber-400 dark:hover:bg-amber-900/40'
-                    : 'text-stone-700 hover:bg-amber-100 dark:text-stone-200 dark:hover:bg-amber-900/40'
+                    ? 'font-bold text-goldd hover:bg-activebg'
+                    : 'text-ink hover:bg-activebg'
               }`}
             >
               {d}

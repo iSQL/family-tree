@@ -5,7 +5,7 @@ export function Spinner({ size = 24 }: { size?: number }) {
     <span
       role="status"
       aria-label={STR.common.loading}
-      className="inline-block animate-spin rounded-full border-2 border-stone-300 border-t-amber-700 dark:border-stone-600 dark:border-t-amber-500"
+      className="inline-block animate-spin rounded-full border-2 border-line border-t-gold"
       style={{ width: size, height: size }}
     />
   );

@@ -20,7 +20,7 @@ export function AuthGuard({ children }: { children: ReactNode }) {
   if (isError || !data) {
     return (
       <div className="flex h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
-        <p className="text-sm text-stone-600 dark:text-stone-300">{STR.session.checkFailed}</p>
+        <p className="text-base text-muted">{STR.session.checkFailed}</p>
         <Button onClick={() => void refetch()}>{STR.common.retry}</Button>
       </div>
     );
