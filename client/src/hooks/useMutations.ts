@@ -27,6 +27,7 @@ function toSlim(p: Person): PersonSlim {
     title: p.title,
     birth_date: p.birth_date,
     death_date: p.death_date,
+    birth_place: p.birth_place,
     photo_id: p.photo_id,
     father_id: p.father_id,
     mother_id: p.mother_id,

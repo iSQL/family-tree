@@ -1,15 +1,147 @@
 import { useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { AlertTriangle, Download, Upload } from 'lucide-react';
-import type { GedcomImportResult } from '@shared/types';
-import { gedcomImport } from '../api/client';
+import { AlertTriangle, Archive, Download, RotateCcw, Upload } from 'lucide-react';
+import type { BackupRestoreResult, GedcomImportResult } from '@shared/types';
+import { gedcomImport, restoreBackup } from '../api/client';
 import { useOnline } from '../hooks/useOnline';
-import { useReadonly } from '../hooks/useAccess';
+import { useCanWrite, useReadonly } from '../hooks/useAccess';
 import { Button } from '../components/ui/Button';
 import { Card, CardHeader } from '../components/ui/Card';
 import { ConfirmDialog } from '../components/ui/Dialog';
 import { STR } from '../lib/strings';
+
+/** Ime ZIP fajla za preuzimanje — usklađeno sa serverskim formatom. */
+function backupFileName(): string {
+  const d = new Date();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `porodicno-stablo-backup-${d.getFullYear()}-${mm}-${dd}.zip`;
+}
+
+/** Potpuna rezervna kopija (ZIP: baza + slike) — samo admin (pun pristup). */
+function FullBackupSection() {
+  const online = useOnline();
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [result, setResult] = useState<BackupRestoreResult | null>(null);
+
+  const exportMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/backup/export', { credentials: 'include' });
+      if (!res.ok) throw new Error(STR.backup.exportFailed);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = backupFileName();
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : STR.backup.exportFailed);
+    },
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: () => {
+      if (!file) throw new Error(STR.backup.fileLabel);
+      return restoreBackup(file);
+    },
+    onSuccess: async (res) => {
+      setResult(res);
+      setFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['tree'] }),
+        queryClient.invalidateQueries({ queryKey: ['person'] }),
+      ]);
+      toast.success(STR.backup.restored);
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : STR.backup.restoreFailed);
+    },
+  });
+
+  const busy = restoreMutation.isPending;
+
+  return (
+    <Card>
+      <CardHeader title={STR.backup.title} />
+      <div className="space-y-4 p-4">
+        <p className="text-sm text-stone-600 dark:text-stone-300">{STR.backup.intro}</p>
+
+        <Button
+          onClick={() => exportMutation.mutate()}
+          disabled={!online || exportMutation.isPending}
+          title={!online ? STR.common.offlineDisabled : undefined}
+        >
+          <Archive size={16} aria-hidden="true" />
+          {STR.backup.exportButton}
+        </Button>
+
+        <div className="border-t border-stone-200 pt-4 dark:border-stone-700">
+          <h3 className="text-sm font-semibold text-stone-700 dark:text-stone-200">{STR.backup.restoreTitle}</h3>
+          <p className="mt-1 mb-3 flex items-start gap-1 text-xs text-red-600 dark:text-red-400">
+            <AlertTriangle size={13} aria-hidden="true" className="mt-0.5 shrink-0" />
+            {STR.backup.restoreHint}
+          </p>
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold tracking-wide text-stone-500 uppercase dark:text-stone-400">
+              {STR.backup.fileLabel}
+            </span>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".zip,application/zip"
+              disabled={!online || busy}
+              onChange={(e) => {
+                setFile(e.target.files?.[0] ?? null);
+                setResult(null);
+              }}
+              className="block w-full cursor-pointer text-sm text-stone-600 file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-amber-700 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white hover:file:bg-amber-800 disabled:opacity-50 dark:text-stone-300 dark:file:bg-amber-600 dark:hover:file:bg-amber-500"
+            />
+          </label>
+          <Button
+            variant="danger"
+            className="mt-3"
+            onClick={() => setConfirmOpen(true)}
+            disabled={file === null || !online || busy}
+            title={!online ? STR.common.offlineDisabled : undefined}
+          >
+            <RotateCcw size={16} aria-hidden="true" />
+            {STR.backup.restoreButton}
+          </Button>
+        </div>
+
+        {result && (
+          <div className="grid grid-cols-3 gap-2 border-t border-stone-200 pt-4 dark:border-stone-700">
+            <ResultNumber label={STR.backup.personsRestored} value={result.persons} />
+            <ResultNumber label={STR.backup.unionsRestored} value={result.unions} />
+            <ResultNumber label={STR.backup.photosRestored} value={result.photos} />
+          </div>
+        )}
+      </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title={STR.backup.confirmTitle}
+        text={STR.backup.confirmText}
+        confirmLabel={STR.backup.confirmLabel}
+        busy={busy}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          restoreMutation.mutate();
+        }}
+      />
+    </Card>
+  );
+}
 
 type ImportMode = 'replace' | 'merge';
 
@@ -72,6 +204,7 @@ function ImportResultView({ result }: { result: GedcomImportResult }) {
 export default function GedcomPage() {
   const online = useOnline();
   const readonly = useReadonly();
+  const canWrite = useCanWrite();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -241,6 +374,9 @@ export default function GedcomPage() {
         )}
 
         {result && <ImportResultView result={result} />}
+
+        {/* Potpuna rezervna kopija — samo admin (pun pristup) */}
+        {canWrite && <FullBackupSection />}
 
         {!readonly && (
           <ConfirmDialog

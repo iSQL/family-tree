@@ -1,4 +1,4 @@
-import type { ApiErrorBody, GedcomImportResult } from '@shared/types';
+import type { ApiErrorBody, BackupRestoreResult, GedcomImportResult } from '@shared/types';
 import { STR } from '../lib/strings';
 
 export class ApiError extends Error {
@@ -76,6 +76,16 @@ export function uploadPhoto(personId: number, blob: Blob): Promise<{ photo_id: s
   const fd = new FormData();
   fd.append('photo', blob, 'photo.jpg');
   return apiFetch<{ photo_id: string }>(`/api/persons/${personId}/photo`, {
+    method: 'POST',
+    formData: fd,
+  });
+}
+
+/** Vraćanje iz potpune rezervne kopije (multipart ZIP) — briše i zamenjuje sve. */
+export function restoreBackup(file: File): Promise<BackupRestoreResult> {
+  const fd = new FormData();
+  fd.append('file', file);
+  return apiFetch<BackupRestoreResult>('/api/backup/restore', {
     method: 'POST',
     formData: fd,
   });

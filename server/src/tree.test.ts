@@ -31,7 +31,7 @@ describe('GET /api/tree', () => {
     expect(Object.keys(slim).sort()).toEqual(
       [
         'id', 'first_name', 'last_name', 'maiden_name', 'gender', 'title',
-        'birth_date', 'death_date', 'photo_id', 'father_id', 'mother_id', 'is_family_head',
+        'birth_date', 'death_date', 'birth_place', 'photo_id', 'father_id', 'mother_id', 'is_family_head',
       ].sort(),
     );
     expect(slim).not.toHaveProperty('notes');

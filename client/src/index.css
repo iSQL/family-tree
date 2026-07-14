@@ -24,6 +24,41 @@
 }
 
 /* ---------------------------------------------------------------- */
+/* Štampa postera — skriveni portal (.poster-print-root) se vidi     */
+/* samo u štampi, a aplikacija (#root) se tada sakriva.              */
+/* ---------------------------------------------------------------- */
+
+.poster-print-root {
+  display: none;
+}
+
+@media print {
+  body.poster-printing #root {
+    display: none !important;
+  }
+
+  body.poster-printing .poster-print-root {
+    display: block;
+  }
+
+  .poster-page {
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .poster-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  .poster-sheet,
+  .poster-sheet * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}
+
+/* ---------------------------------------------------------------- */
 /* family-chart (f3) override-i — naš kontejner nosi klasu .ft-tree */
 /* ---------------------------------------------------------------- */
 

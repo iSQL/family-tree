@@ -13,7 +13,7 @@ import type { PersonInput, PersonPatch } from '@shared/schemas';
 import { AppError } from '../middleware/errors';
 
 const SLIM_COLS =
-  'id, first_name, last_name, maiden_name, gender, title, birth_date, death_date, photo_id, father_id, mother_id, is_family_head';
+  'id, first_name, last_name, maiden_name, gender, title, birth_date, death_date, birth_place, photo_id, father_id, mother_id, is_family_head';
 const UNION_COLS = 'id, partner1_id, partner2_id, type, start_date, end_date, end_reason, notes';
 
 /** SQLite čuva is_family_head kao 0/1 → DTO ga izlaže kao boolean. */

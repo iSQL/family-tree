@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ChevronRight, Download, FileText, LogIn, LogOut, Monitor, Moon, Sun, type LucideIcon } from 'lucide-react';
+import { ChevronRight, Download, FileText, LogIn, LogOut, Monitor, Moon, Printer, Sun, type LucideIcon } from 'lucide-react';
 import { apiFetch } from '../api/client';
 import { useInstallPrompt } from '../hooks/useInstallPrompt';
 import { useOnline } from '../hooks/useOnline';
@@ -18,6 +18,27 @@ const THEME_OPTIONS: { value: Theme; label: string; icon: LucideIcon }[] = [
   { value: 'dark', label: STR.settings.themeDark, icon: Moon },
   { value: 'system', label: STR.settings.themeSystem, icon: Monitor },
 ];
+
+/** Sklopiv blok sa numerisanim koracima za instalaciju (Android / iOS). */
+function InstallSteps({ title, steps }: { title: string; steps: string[] }) {
+  return (
+    <details className="group rounded-lg border border-stone-200 dark:border-stone-700">
+      <summary className="flex cursor-pointer items-center gap-1.5 px-3 py-2 text-sm font-medium select-none">
+        <ChevronRight
+          size={14}
+          aria-hidden="true"
+          className="shrink-0 transition-transform group-open:rotate-90"
+        />
+        {title}
+      </summary>
+      <ol className="list-decimal space-y-1 px-3 pb-3 pl-9 text-sm text-stone-600 dark:text-stone-300">
+        {steps.map((step) => (
+          <li key={step}>{step}</li>
+        ))}
+      </ol>
+    </details>
+  );
+}
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -65,6 +86,21 @@ export default function SettingsPage() {
           </div>
         </Card>
 
+        {/* Izvoz postera */}
+        <Card>
+          <CardHeader title={STR.settings.posterSection} />
+          <div className="space-y-3 p-4">
+            <p className="text-sm text-stone-600 dark:text-stone-300">{STR.settings.posterHint}</p>
+            <Link
+              to="/settings/poster"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-amber-700 px-3 py-2 text-sm font-medium text-white hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-500"
+            >
+              <Printer size={16} aria-hidden="true" />
+              {STR.settings.posterLink}
+            </Link>
+          </div>
+        </Card>
+
         {/* Instalacija */}
         <Card>
           <CardHeader title={STR.settings.install} />
@@ -78,21 +114,14 @@ export default function SettingsPage() {
             ) : (
               <p className="text-xs text-stone-400 dark:text-stone-500">{STR.settings.installUnavailable}</p>
             )}
-            <details className="group rounded-lg border border-stone-200 dark:border-stone-700">
-              <summary className="flex cursor-pointer items-center gap-1.5 px-3 py-2 text-sm font-medium select-none">
-                <ChevronRight
-                  size={14}
-                  aria-hidden="true"
-                  className="shrink-0 transition-transform group-open:rotate-90"
-                />
-                {STR.settings.installIosTitle}
-              </summary>
-              <ol className="list-decimal space-y-1 px-3 pb-3 pl-9 text-sm text-stone-600 dark:text-stone-300">
-                <li>{STR.settings.installIos1}</li>
-                <li>{STR.settings.installIos2}</li>
-                <li>{STR.settings.installIos3}</li>
-              </ol>
-            </details>
+            <InstallSteps
+              title={STR.settings.installAndroidTitle}
+              steps={[STR.settings.installAndroid1, STR.settings.installAndroid2, STR.settings.installAndroid3]}
+            />
+            <InstallSteps
+              title={STR.settings.installIosTitle}
+              steps={[STR.settings.installIos1, STR.settings.installIos2, STR.settings.installIos3]}
+            />
           </div>
         </Card>
 
@@ -153,9 +182,9 @@ export default function SettingsPage() {
             </dl>
             <Link
               to="/gedcom"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-700 underline underline-offset-2 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-amber-700 px-3 py-2 text-sm font-medium text-white hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-500"
             >
-              <FileText size={14} aria-hidden="true" />
+              <FileText size={16} aria-hidden="true" />
               {STR.settings.gedcomLink}
             </Link>
           </div>

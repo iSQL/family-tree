@@ -14,6 +14,7 @@ import { createPersonsRouter } from './routes/persons';
 import { createUnionsRouter } from './routes/unions';
 import { createPhotosRouter } from './routes/photos';
 import { createGedcomRouter } from './routes/gedcom';
+import { createBackupRouter } from './routes/backup';
 
 /** Sklapa Express app bez listen-a — supertest radi direktno nad njim. */
 export function createApp(cfg: AppConfig, db: DB): express.Express {
@@ -66,6 +67,7 @@ export function createApp(cfg: AppConfig, db: DB): express.Express {
   app.use('/api/unions', createUnionsRouter(db));
   app.use('/api', createPhotosRouter(db, cfg));
   app.use('/api/gedcom', createGedcomRouter(db));
+  app.use('/api/backup', createBackupRouter(db, cfg));
 
   app.use('/api', (_req, res) => {
     res.status(404).json({ error: 'not_found' });

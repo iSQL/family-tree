@@ -27,3 +27,16 @@ export function blockReadonlyWrites(cfg: AppConfig): RequestHandler {
     next();
   };
 }
+
+/**
+ * Traži PUN (admin) pristup nezavisno od metode — i za GET. Za rute koje smeju samo
+ * prijavljeni punom lozinkom (potpuna rezervna kopija: izvoz cele baze + vraćanje).
+ * Odbija read-only sesije i neprijavljene goste (pa i pod PUBLIC_READ). Dev = pun pristup.
+ */
+export function requireFullAccess(cfg: AppConfig): RequestHandler {
+  return (req, res, next) => {
+    if (cfg.authDisabled) return next();
+    if (req.session?.authenticated === true && req.session.readonly !== true) return next();
+    res.status(403).json({ error: 'forbidden_admin', message: 'Potreban je administratorski pristup' });
+  };
+}

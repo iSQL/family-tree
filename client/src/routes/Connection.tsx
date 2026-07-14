@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Printer } from 'lucide-react';
 import type { TreeResponse } from '@shared/types';
 import { describeKinship, type KinshipResult } from '@shared/kinship';
 import { buildConnectionView } from '@shared/kinship/connection';
@@ -93,6 +93,14 @@ export default function ConnectionPage() {
         <p className="min-w-0 flex-1 truncate text-sm font-medium" title={result.description}>
           {result.description}
         </p>
+        <Link
+          to={`/settings/poster?scope=kinship&a=${aId}&b=${bId}`}
+          className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-stone-600 hover:bg-stone-200/70 hover:text-stone-900 dark:text-stone-300 dark:hover:bg-stone-700 dark:hover:text-stone-100"
+          title={STR.poster.title}
+        >
+          <Printer size={16} aria-hidden="true" />
+          <span className="hidden sm:inline">{STR.poster.posterButton}</span>
+        </Link>
       </div>
 
       <div className="relative min-h-0 flex-1 overflow-hidden">

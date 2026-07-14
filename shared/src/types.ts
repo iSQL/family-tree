@@ -18,6 +18,7 @@ export interface PersonSlim {
   birth_date: string | null;
   /** Isti format; null = živ ili nepoznato. */
   death_date: string | null;
+  birth_place: string | null;
   /** UUID stem fajlova slike: GET /api/photos/{photo_id}?size=full|thumb. */
   photo_id: string | null;
   father_id: number | null;
@@ -28,7 +29,6 @@ export interface PersonSlim {
 
 /** Pun red iz baze (GET /api/persons/:id, GEDCOM export). */
 export interface Person extends PersonSlim {
-  birth_place: string | null;
   notes: string | null;
   gedcom_xref: string | null;
   created_at: string;
@@ -104,6 +104,13 @@ export interface GedcomWarning {
   tag: string;
   count: number;
   sample?: string;
+}
+
+/** Odgovor POST /api/backup/restore — koliko je vraćeno iz potpune rezervne kopije. */
+export interface BackupRestoreResult {
+  persons: number;
+  unions: number;
+  photos: number;
 }
 
 /** Odgovor POST /api/gedcom/import (i za dry_run). */

@@ -41,6 +41,7 @@ function person(
     birth_date: null,
     death_date: null,
     photo_id: null,
+    birth_place: null,
     father_id,
     mother_id,
     is_family_head: false,

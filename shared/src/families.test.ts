@@ -28,6 +28,7 @@ function person(
     birth_date: opts.birth ?? null,
     death_date: null,
     photo_id: null,
+    birth_place: null,
     father_id: opts.father ?? null,
     mother_id: opts.mother ?? null,
     is_family_head: opts.head ?? false,

@@ -15,6 +15,7 @@ import CalculatorPage from './routes/Calculator';
 import ConnectionPage from './routes/Connection';
 import GedcomPage from './routes/Gedcom';
 import SettingsPage from './routes/Settings';
+import PosterPage from './routes/Poster';
 import NotFoundPage from './routes/NotFound';
 
 const queryClient = new QueryClient({
@@ -63,6 +64,7 @@ export default function App() {
               <Route path="/connection" element={<ConnectionPage />} />
               <Route path="/gedcom" element={<GedcomPage />} />
               <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/settings/poster" element={<PosterPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Route>
           </Routes>

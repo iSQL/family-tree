@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { HeartHandshake, Plus, TreeDeciduous } from 'lucide-react';
+import { HeartHandshake, Plus, Printer, TreeDeciduous } from 'lucide-react';
 import { resolveProgenyDepth, maxDescendantDepth } from '@shared/treeView';
 import { useTree } from '../hooks/useTree';
 import { useIsDesktop } from '../hooks/useIsDesktop';
@@ -226,19 +226,33 @@ export default function TreePage() {
         onChangeProgeny={changeProgeny}
       />
 
-      {/* Prekidač moda „Srodstvo" (gore-desno) */}
-      <Button
-        variant={kinshipMode ? 'primary' : 'secondary'}
-        size="sm"
-        className="absolute top-3 right-3 z-20 shadow-lg"
-        onClick={toggleKinshipMode}
-        aria-pressed={kinshipMode}
-      >
-        <HeartHandshake size={16} aria-hidden="true" />
-        <span className="hidden sm:inline">
-          {kinshipMode ? STR.tree.kinshipModeOn : STR.tree.kinshipMode}
-        </span>
-      </Button>
+      {/* Gore-desno: izvoz postera (trenutni prikaz) + prekidač moda „Srodstvo" */}
+      <div className="absolute top-3 right-3 z-20 flex gap-2">
+        {!kinshipMode && (
+          <Button
+            variant="secondary"
+            size="sm"
+            className="shadow-lg"
+            onClick={() => navigate(`/settings/poster?scope=view&focus=${focusId}&down=${progeny}`)}
+            title={STR.poster.title}
+          >
+            <Printer size={16} aria-hidden="true" />
+            <span className="hidden sm:inline">{STR.poster.posterButton}</span>
+          </Button>
+        )}
+        <Button
+          variant={kinshipMode ? 'primary' : 'secondary'}
+          size="sm"
+          className="shadow-lg"
+          onClick={toggleKinshipMode}
+          aria-pressed={kinshipMode}
+        >
+          <HeartHandshake size={16} aria-hidden="true" />
+          <span className="hidden sm:inline">
+            {kinshipMode ? STR.tree.kinshipModeOn : STR.tree.kinshipMode}
+          </span>
+        </Button>
+      </div>
 
       {kinshipMode && (
         <KinshipPanel

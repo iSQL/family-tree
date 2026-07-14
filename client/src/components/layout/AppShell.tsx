@@ -1,7 +1,6 @@
 import { NavLink, Outlet, useSearchParams } from 'react-router-dom';
 import {
   Cake,
-  FileText,
   HeartHandshake,
   History,
   Settings,
@@ -25,7 +24,6 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/birthdays', label: STR.nav.birthdays, icon: Cake },
   { to: '/timeline', label: STR.nav.timeline, icon: History },
   { to: '/calculator', label: STR.nav.kinship, icon: HeartHandshake },
-  { to: '/gedcom', label: STR.nav.gedcom, icon: FileText },
   { to: '/settings', label: STR.nav.settings, icon: Settings },
 ];
 
