@@ -1,11 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { HeartHandshake, Plus, Printer, TreeDeciduous } from 'lucide-react';
-import { resolveProgenyDepth, maxDescendantDepth } from '@shared/treeView';
+import { toast } from 'sonner';
+import {
+  resolveProgenyDepth,
+  maxDescendantDepth,
+  hidePersonsFromTree,
+  collectBranchIds,
+  collectProtectedIds,
+} from '@shared/treeView';
 import { useTree } from '../hooks/useTree';
 import { useIsDesktop } from '../hooks/useIsDesktop';
 import { useReadonly, useCanWrite } from '../hooks/useAccess';
 import { TreeCanvas } from '../components/tree/TreeCanvas';
+import { TreeContextMenu } from '../components/tree/TreeContextMenu';
 import { TreeControls } from '../components/tree/TreeControls';
 import { FamilyChooser } from '../components/family/FamilyChooser';
 import { KinshipPanel } from '../components/tree/KinshipPanel';
@@ -27,6 +35,13 @@ export default function TreePage() {
   // Mod „Srodstvo": izbor do dve osobe u stablu za prikaz njihovog srodstva.
   const [kinshipMode, setKinshipMode] = useState(false);
   const [kinshipSel, setKinshipSel] = useState<number[]>([]);
+  // Kontekst meni nad karticom (desni klik / dugi pritisak).
+  const [ctxMenu, setCtxMenu] = useState<{ id: number; x: number; y: number } | null>(null);
+  // Ručno skrivene grane (samo prikaz — podaci netaknuti). Grana = koren +
+  // supružnici + potomci; vraća se pojedinačno (čip) ili sve odjednom.
+  const [hiddenBranches, setHiddenBranches] = useState<
+    { rootId: number; label: string; ids: number[] }[]
+  >([]);
 
   const focusParam = searchParams.get('focus');
   const focusId = focusParam !== null && Number.isFinite(Number(focusParam)) ? Number(focusParam) : null;
@@ -35,9 +50,27 @@ export default function TreePage() {
   // Bez parametra: malo stablo = svi potomci, veliko = adaptivni podrazumevani.
   // Glavna osoba = fokus, ili podrazumevani koren (f3 uzima prvu osobu = najmanji id).
   const mainId = focusId ?? tree?.persons[0]?.id ?? null;
-  const maxProgeny = useMemo(
-    () => (tree && mainId !== null ? maxDescendantDepth(tree.persons, mainId) : 0),
+
+  const hiddenIds = useMemo(
+    () => new Set(hiddenBranches.flatMap((b) => b.ids)),
+    [hiddenBranches],
+  );
+
+  // Glavna osoba + preci — njihove kartice nemaju „−" i ne mogu da se sakriju.
+  const protectedIds = useMemo(
+    () => (tree && mainId !== null ? [...collectProtectedIds(tree, mainId)] : []),
     [tree, mainId],
+  );
+
+  // Stablo bez ručno skrivenih grana — SAMO za canvas i stepper potomaka;
+  // pretraga, kalkulator srodstva i izbor porodice rade nad punim podacima.
+  const visibleTree = useMemo(
+    () => (tree ? hidePersonsFromTree(tree, hiddenIds) : undefined),
+    [tree, hiddenIds],
+  );
+  const maxProgeny = useMemo(
+    () => (visibleTree && mainId !== null ? maxDescendantDepth(visibleTree.persons, mainId) : 0),
+    [visibleTree, mainId],
   );
   const downParam = searchParams.get('down');
   const progeny = resolveProgenyDepth(
@@ -63,10 +96,45 @@ export default function TreePage() {
   const focusPerson = useCallback(
     (id: number) => {
       if (focusId !== null && focusId !== id) setFocusHistory((h) => [...h, focusId]);
+      // Fokusirana osoba mora biti vidljiva — vrati grane koje je skrivaju.
+      setHiddenBranches((brs) => brs.filter((b) => !b.ids.includes(id)));
       mergeParams({ focus: String(id) });
     },
     [focusId, mergeParams],
   );
+
+  // Sakrij granu (koren + supružnici + potomci); zaštićene osobe ne mogu.
+  // Ako grana nosi otvorene detalje ili izbor za srodstvo, očisti i to.
+  const hideBranch = useCallback(
+    (id: number) => {
+      if (!tree || mainId === null) return;
+      const ids = collectBranchIds(tree, id, mainId);
+      if (ids === null) return;
+      const person = tree.persons.find((p) => p.id === id);
+      const label = person ? `${person.first_name} ${person.last_name}`.trim() : '?';
+      setHiddenBranches((brs) =>
+        brs.some((b) => b.rootId === id) ? brs : [...brs, { rootId: id, label, ids }],
+      );
+      setSelectedId((sel) => (sel !== null && ids.includes(sel) ? null : sel));
+      setKinshipSel((sel) => sel.filter((x) => !ids.includes(x)));
+      toast(ids.length > 1 ? `Sakriveno: ${label} i grana (${ids.length})` : `Sakriveno: ${label}`);
+    },
+    [tree, mainId],
+  );
+
+  const restoreBranch = useCallback(
+    (rootId: number) => {
+      const branch = hiddenBranches.find((b) => b.rootId === rootId);
+      setHiddenBranches((brs) => brs.filter((b) => b.rootId !== rootId));
+      if (branch) toast(`Vraćeno u prikaz: ${branch.label}`);
+    },
+    [hiddenBranches],
+  );
+
+  const showAllBranches = useCallback(() => {
+    setHiddenBranches([]);
+    toast(STR.tree.allRestored);
+  }, []);
 
   // Promena broja generacija potomaka — ograničeno na [0, maxProgeny] (koliko ih čvor ima).
   const changeProgeny = useCallback(
@@ -93,6 +161,15 @@ export default function TreePage() {
       else setSelectedId(id);
     },
     [kinshipMode, toggleKinshipSelect],
+  );
+
+  // Desni klik / dugi pritisak na čvor — otvori kontekst meni (van moda „Srodstvo").
+  const handlePersonContextMenu = useCallback(
+    (id: number, x: number, y: number) => {
+      if (kinshipMode) return;
+      setCtxMenu({ id, x, y });
+    },
+    [kinshipMode],
   );
 
   // Uđi/izađi iz moda „Srodstvo" — pri ulasku zatvori detalje, pri izlasku očisti izbor.
@@ -208,10 +285,13 @@ export default function TreePage() {
   return (
     <div className="relative min-h-0 flex-1 overflow-hidden">
       <TreeCanvas
-        tree={tree}
+        tree={visibleTree ?? tree}
         focusId={focusId}
         onPersonClick={handlePersonClick}
         onPersonActivate={focusPerson}
+        onPersonContextMenu={handlePersonContextMenu}
+        onPersonHide={hideBranch}
+        protectedIds={protectedIds}
         selectedIds={kinshipMode ? kinshipSel : undefined}
         progenyDepth={progeny}
       />
@@ -224,6 +304,13 @@ export default function TreePage() {
         onBack={goBack}
         onReset={resetFocus}
         onChangeProgeny={changeProgeny}
+        hiddenBranches={hiddenBranches.map((b) => ({
+          rootId: b.rootId,
+          label: b.label,
+          count: b.ids.length,
+        }))}
+        onRestoreBranch={restoreBranch}
+        onShowAll={showAllBranches}
       />
 
       {/* Gore-desno: izvoz postera (trenutni prikaz) + prekidač moda „Srodstvo" */}
@@ -233,7 +320,14 @@ export default function TreePage() {
             variant="secondary"
             size="sm"
             className="shadow-lg"
-            onClick={() => navigate(`/settings/poster?scope=view&focus=${focusId}&down=${progeny}`)}
+            onClick={() => {
+              // Prosledi i skrivene grane (koreni) — poster ih izostavlja kao i prikaz.
+              const hide =
+                hiddenBranches.length > 0
+                  ? `&hide=${hiddenBranches.map((b) => b.rootId).join(',')}`
+                  : '';
+              navigate(`/settings/poster?scope=view&focus=${focusId}&down=${progeny}${hide}`);
+            }}
             title={STR.poster.title}
           >
             <Printer size={16} aria-hidden="true" />
@@ -265,6 +359,11 @@ export default function TreePage() {
         />
       )}
 
+      {/* Diskretan podsetnik na gestove — samo desktop, ne smeta stablu */}
+      <p className="zb-label pointer-events-none absolute bottom-[18px] left-1/2 z-10 hidden -translate-x-1/2 text-[10px] whitespace-nowrap text-faint md:block">
+        {STR.tree.hint}
+      </p>
+
       {/* Plutajuće dugme za dodavanje — sakriveno dok je sheet otvoren, u modu „Srodstvo" ili u režimu pregleda */}
       {!sheetOpen && !readonly && !kinshipMode && (
         <Button
@@ -276,6 +375,29 @@ export default function TreePage() {
           <span className="hidden sm:inline">{STR.tree.addPerson}</span>
         </Button>
       )}
+
+      {ctxMenu !== null &&
+        (() => {
+          const ctxPerson = tree.persons.find((p) => p.id === ctxMenu.id);
+          if (!ctxPerson) return null;
+          const branchIds =
+            mainId !== null ? collectBranchIds(tree, ctxMenu.id, mainId) : null;
+          return (
+            <TreeContextMenu
+              person={ctxPerson}
+              x={ctxMenu.x}
+              y={ctxMenu.y}
+              canWrite={canWrite}
+              branchCount={branchIds === null ? null : branchIds.length}
+              onClose={() => setCtxMenu(null)}
+              onEdit={(id) => navigate(`/person/${id}/edit`)}
+              onAddChild={(id) => navigate(`/person/new?childOf=${id}`)}
+              onAddSpouse={(id) => navigate(`/person/new?spouseOf=${id}`)}
+              onAddParent={(id) => navigate(`/person/new?parentOf=${id}`)}
+              onHide={hideBranch}
+            />
+          );
+        })()}
 
       {isDesktop && selectedId !== null && (
         <PersonDrawer

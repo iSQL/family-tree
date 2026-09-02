@@ -15,7 +15,12 @@ import type { PersonSlim, TreeResponse } from '@shared/types';
 import { chooserFamilies, familyMemberIds, filterTreeToFamily } from '@shared/families';
 import { posterSubtree, type PosterScope } from '@shared/posterScope';
 import { comparePartialDates } from '@shared/partialDate';
-import { maxDescendantDepth, resolveProgenyDepth } from '@shared/treeView';
+import {
+  maxDescendantDepth,
+  resolveProgenyDepth,
+  collectBranchIds,
+  hidePersonsFromTree,
+} from '@shared/treeView';
 import { describeKinships, type KinshipResult } from '@shared/kinship';
 import { buildConnectionView } from '@shared/kinship/connection';
 import { useTree } from '../hooks/useTree';
@@ -213,7 +218,7 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
   return <span className="zb-label mb-1 block text-[11px] tracking-[.16em] text-faint">{children}</span>;
 }
 
-function PosterPageInner({ tree }: { tree: TreeResponse }) {
+function PosterPageInner({ tree, hiddenCount }: { tree: TreeResponse; hiddenCount: number }) {
   const [searchParams] = useSearchParams();
   const focusId = parseIdParam(searchParams.get('focus'), tree);
   const scopeParam = searchParams.get('scope');
@@ -679,6 +684,11 @@ function PosterPageInner({ tree }: { tree: TreeResponse }) {
           <span className="rounded-full border border-line bg-surface px-3 py-1 text-xs text-muted">
             {orient === 'portrait' ? STR.poster.orientPortrait : STR.poster.orientLandscape}
           </span>
+          {hiddenCount > 0 && (
+            <span className="rounded-full border border-dashed border-line bg-surface px-3 py-1 text-xs text-muted">
+              {STR.tree.hiddenCount} {hiddenCount}
+            </span>
+          )}
           {scope === 'selected' && (
             <div className="flex gap-1.5">
               <SegButton active={pickMode} onClick={() => setPickMode(true)}>
@@ -718,9 +728,31 @@ function PosterPageInner({ tree }: { tree: TreeResponse }) {
 
 export default function PosterPage() {
   const { data: tree, isPending } = useTree();
+  const [searchParams] = useSearchParams();
+
+  // Skrivene grane sa stranice stabla (?hide=koren,koren…) — poster ih izostavlja
+  // isto kao prikaz: grana se računa oko istog fokusa, pa se stablo filtrira.
+  const visibleTree = useMemo(() => {
+    if (!tree) return tree;
+    const roots = (searchParams.get('hide') ?? '')
+      .split(',')
+      .map(Number)
+      .filter((n) => Number.isInteger(n));
+    if (roots.length === 0) return tree;
+    const mainId = parseIdParam(searchParams.get('focus'), tree) ?? tree.persons[0]?.id;
+    if (mainId === undefined) return tree;
+    const hidden = new Set(roots.flatMap((r) => collectBranchIds(tree, r, mainId) ?? []));
+    return hidePersonsFromTree(tree, hidden);
+  }, [tree, searchParams]);
+
   if (isPending) return <FullScreenSpinner />;
-  if (!tree || tree.persons.length === 0) {
+  if (!tree || !visibleTree || visibleTree.persons.length === 0) {
     return <p className="p-6 text-base text-muted">{STR.poster.emptyTree}</p>;
   }
-  return <PosterPageInner tree={tree} />;
+  return (
+    <PosterPageInner
+      tree={visibleTree}
+      hiddenCount={tree.persons.length - visibleTree.persons.length}
+    />
+  );
 }

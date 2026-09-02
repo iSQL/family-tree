@@ -2,9 +2,13 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_PROGENY_DEPTH,
   LARGE_TREE_THRESHOLD,
+  collectBranchIds,
+  collectProtectedIds,
+  hidePersonsFromTree,
   maxDescendantDepth,
   resolveProgenyDepth,
 } from './treeView';
+import type { PersonSlim, TreeResponse, Union } from './types';
 
 type P = { id: number; father_id: number | null; mother_id: number | null };
 const person = (id: number, father: number | null = null, mother: number | null = null): P => ({
@@ -63,5 +67,102 @@ describe('resolveProgenyDepth', () => {
   it('nevalidan parametar → kao nezadat', () => {
     expect(resolveProgenyDepth(5000, -1, 8)).toBe(DEFAULT_PROGENY_DEPTH);
     expect(resolveProgenyDepth(10, 2.5, 4)).toBe(4);
+  });
+});
+
+describe('hidePersonsFromTree', () => {
+  const slim = (id: number, father: number | null = null, mother: number | null = null): PersonSlim => ({
+    id,
+    first_name: `Osoba${id}`,
+    last_name: 'Test',
+    maiden_name: null,
+    gender: 'U',
+    title: null,
+    birth_date: null,
+    death_date: null,
+    birth_place: null,
+    photo_id: null,
+    father_id: father,
+    mother_id: mother,
+    is_family_head: false,
+  });
+  const union = (id: number, a: number, b: number): Union => ({
+    id,
+    partner1_id: a,
+    partner2_id: b,
+    type: 'marriage',
+    start_date: null,
+    end_date: null,
+    end_reason: null,
+    notes: null,
+  });
+
+  it('prazan skup → isti objekat (bez kopiranja)', () => {
+    const tree: TreeResponse = { persons: [slim(1)], unions: [] };
+    expect(hidePersonsFromTree(tree, new Set())).toBe(tree);
+  });
+
+  it('uklanja osobu i brakove koji je dodiruju, ostale ne dira', () => {
+    const tree: TreeResponse = {
+      persons: [slim(1), slim(2), slim(3, 1, 2)],
+      unions: [union(1, 1, 2), union(2, 2, 3)],
+    };
+    const out = hidePersonsFromTree(tree, new Set([2]));
+    expect(out.persons.map((p) => p.id)).toEqual([1, 3]);
+    expect(out.unions.map((u) => u.id)).toEqual([]);
+    // izvorno stablo netaknuto
+    expect(tree.persons).toHaveLength(3);
+  });
+
+  it('roditeljske reference ka skrivenoj osobi ostaju (toF3 ih preskače)', () => {
+    const tree: TreeResponse = { persons: [slim(1), slim(2, 1, null)], unions: [] };
+    const out = hidePersonsFromTree(tree, new Set([1]));
+    expect(out.persons).toHaveLength(1);
+    expect(out.persons[0]!.father_id).toBe(1);
+  });
+
+  // Porodica za testove grane: deda 1 + baba 2 → sin 3 (žena 4) i ćerka 7;
+  // deca sina: 5 i 6. Glavna osoba = 5.
+  const family: TreeResponse = {
+    persons: [
+      slim(1),
+      slim(2),
+      slim(3, 1, 2),
+      slim(4),
+      slim(5, 3, 4),
+      slim(6, 3, 4),
+      slim(7, 1, 2),
+    ],
+    unions: [union(1, 1, 2), union(2, 3, 4)],
+  };
+
+  describe('collectProtectedIds', () => {
+    it('glavna osoba + svi preci', () => {
+      expect([...collectProtectedIds(family, 5)].sort()).toEqual([1, 2, 3, 4, 5]);
+      expect([...collectProtectedIds(family, 1)]).toEqual([1]);
+    });
+  });
+
+  describe('collectBranchIds', () => {
+    it('grana = osoba + supružnik + potomci, zaštićeni se preskaču', () => {
+      // Grana strica/tetke 7 iz ugla glavne osobe 5 — samo ona (nema supružnika ni dece).
+      expect(collectBranchIds(family, 7, 5)).toEqual([7]);
+      // Grana brata 6 — samo on.
+      expect(collectBranchIds(family, 6, 5)).toEqual([6]);
+      // Iz ugla glavne osobe 1: grana sina 3 nosi ženu 4 i decu 5 i 6.
+      expect(collectBranchIds(family, 3, 1)?.sort()).toEqual([3, 4, 5, 6]);
+    });
+
+    it('glavna osoba i preci → null', () => {
+      expect(collectBranchIds(family, 5, 5)).toBeNull();
+      expect(collectBranchIds(family, 3, 5)).toBeNull(); // otac glavne
+      expect(collectBranchIds(family, 1, 5)).toBeNull(); // deda glavne
+      expect(collectBranchIds(family, 999, 5)).toBeNull(); // nepostojeća osoba
+    });
+
+    it('obilazak preko braka ne uvlači zaštićene', () => {
+      // Iz ugla glavne 6: grana brata 5 ne sme da povuče roditelje 3/4.
+      expect(collectBranchIds(family, 5, 6)).toEqual([5]);
+    });
   });
 });

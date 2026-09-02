@@ -10,6 +10,7 @@ import 'family-chart/styles/family-chart.css';
 import type { TreeResponse } from '@shared/types';
 import { toF3, type F3Datum } from '../../lib/toF3';
 import { formatLifespan } from '../../lib/dates';
+import { STR } from '../../lib/strings';
 
 type Chart = ReturnType<typeof f3.createChart>;
 type F3Data = Parameters<typeof f3.createChart>[1];
@@ -22,6 +23,12 @@ export interface TreeCanvasProps {
   onPersonClick: (id: number) => void;
   /** Dupli klik — re-root stabla na tu osobu. */
   onPersonActivate?: (id: number) => void;
+  /** Desni klik / dugi pritisak — kontekst meni; (x, y) su viewport koordinate. */
+  onPersonContextMenu?: (id: number, x: number, y: number) => void;
+  /** Klik na „−" na kartici — sakrij granu te osobe. */
+  onPersonHide?: (id: number) => void;
+  /** Glavna osoba + preci — na njihovim karticama se „−" ne prikazuje. */
+  protectedIds?: number[];
   /** ID-jevi istaknutih čvorova (izbor za kalkulator srodstva). */
   selectedIds?: number[];
   /** Broj generacija potomaka od glavne osobe; undefined = neograničeno. Preci su uvek u celosti. */
@@ -66,12 +73,17 @@ function cardInnerHtml(datum: F3Datum, isMain: boolean): string {
     : placeholderSvg(p.gender);
   const genderClass = p.gender === 'M' ? 'ft-card-m' : p.gender === 'F' ? 'ft-card-f' : 'ft-card-u';
   const flags = isMain ? ' ft-card-main' : '';
+  // „−" u uglu sakriva granu; CSS ga gasi na zaštićenim karticama (.ft-card-no-hide, main).
+  const hideBtn = `<button type="button" class="ft-card-hide" title="${esc(STR.tree.hideBranch)}" aria-label="${esc(STR.tree.hideBranch)}">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg>
+  </button>`;
   return `<div class="ft-card ${genderClass}${flags}" data-person-id="${esc(datum.id)}">
     ${img}
     <div class="ft-card-text">
       <div class="ft-card-name">${name}${title}</div>
       ${years ? `<div class="ft-card-years">${years}</div>` : ''}
     </div>
+    ${hideBtn}
   </div>`;
 }
 
@@ -80,6 +92,9 @@ export function TreeCanvas({
   focusId,
   onPersonClick,
   onPersonActivate,
+  onPersonContextMenu,
+  onPersonHide,
+  protectedIds = EMPTY_IDS,
   selectedIds = EMPTY_IDS,
   progenyDepth,
 }: TreeCanvasProps) {
@@ -93,6 +108,10 @@ export function TreeCanvas({
   clickRef.current = onPersonClick;
   const activateRef = useRef(onPersonActivate);
   activateRef.current = onPersonActivate;
+  const contextRef = useRef(onPersonContextMenu);
+  contextRef.current = onPersonContextMenu;
+  const hideRef = useRef(onPersonHide);
+  hideRef.current = onPersonHide;
   // Dubina se čita i u create-efektu ([] deps) — drži je u ref-u da izbegne stale closure.
   const progenyDepthRef = useRef(progenyDepth);
   progenyDepthRef.current = progenyDepth;
@@ -135,20 +154,96 @@ export function TreeCanvas({
 
     chartRef.current = chart;
 
-    // Dupli klik = re-root. family-chart nema dblclick API i zaustavlja propagaciju
-    // u bubble fazi, pa slušamo u CAPTURE fazi na stabilnom kontejneru (čita naš
-    // data-person-id; delegacija preživljava re-render kartica).
-    const onDblClick = (e: MouseEvent) => {
-      const card = (e.target as HTMLElement | null)?.closest<HTMLElement>('.ft-card');
+    // ID osobe sa kartice ispod pokazivača (delegacija preživljava re-render kartica).
+    const personIdAt = (target: EventTarget | null): number | null => {
+      const card = (target as HTMLElement | null)?.closest<HTMLElement>('.ft-card');
       const raw = card?.dataset.personId;
-      if (raw === undefined) return;
+      if (raw === undefined) return null;
       const id = Number(raw);
-      if (Number.isFinite(id)) activateRef.current?.(id);
+      return Number.isFinite(id) ? id : null;
+    };
+
+    // Dupli klik = re-root. family-chart nema dblclick API i zaustavlja propagaciju
+    // u bubble fazi, pa slušamo u CAPTURE fazi na stabilnom kontejneru.
+    const onDblClick = (e: MouseEvent) => {
+      const id = personIdAt(e.target);
+      if (id !== null) activateRef.current?.(id);
     };
     cont.addEventListener('dblclick', onDblClick, true);
 
+    // Desni klik (i Android long-press, koji stiže kao contextmenu) = kontekst meni.
+    const onContextMenu = (e: MouseEvent) => {
+      const id = personIdAt(e.target);
+      if (id === null || contextRef.current === undefined) return;
+      e.preventDefault();
+      e.stopPropagation();
+      cancelLongPress(); // Android šalje i contextmenu i naš tajmer — ne otvaraj dvaput
+      contextRef.current(id, e.clientX, e.clientY);
+    };
+    cont.addEventListener('contextmenu', onContextMenu, true);
+
+    // Dugi pritisak (touch/pen) = kontekst meni — za iOS, koji ne šalje contextmenu.
+    // Pomeranje prsta (pan/zoom) otkazuje; posle otvaranja gutamo sledeći click.
+    let lpTimer: number | null = null;
+    let lpStart: { x: number; y: number } | null = null;
+    let swallowClick = false;
+    const cancelLongPress = () => {
+      if (lpTimer !== null) {
+        clearTimeout(lpTimer);
+        lpTimer = null;
+      }
+      lpStart = null;
+    };
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.pointerType === 'mouse') return;
+      cancelLongPress();
+      const id = personIdAt(e.target);
+      if (id === null || contextRef.current === undefined) return;
+      const { clientX, clientY } = e;
+      lpStart = { x: clientX, y: clientY };
+      lpTimer = window.setTimeout(() => {
+        lpTimer = null;
+        lpStart = null;
+        swallowClick = true;
+        contextRef.current?.(id, clientX, clientY);
+      }, 500);
+    };
+    const onPointerMove = (e: PointerEvent) => {
+      if (lpStart === null) return;
+      if (Math.abs(e.clientX - lpStart.x) > 10 || Math.abs(e.clientY - lpStart.y) > 10)
+        cancelLongPress();
+    };
+    const onClickCapture = (e: MouseEvent) => {
+      // Klik na „−" na kartici — sakrij granu, ne otvaraj detalje.
+      const hideBtn = (e.target as HTMLElement | null)?.closest<HTMLElement>('.ft-card-hide');
+      if (hideBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        swallowClick = false;
+        const id = personIdAt(hideBtn);
+        if (id !== null) hideRef.current?.(id);
+        return;
+      }
+      if (!swallowClick) return;
+      swallowClick = false;
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    cont.addEventListener('pointerdown', onPointerDown, true);
+    cont.addEventListener('pointermove', onPointerMove, true);
+    cont.addEventListener('pointerup', cancelLongPress, true);
+    cont.addEventListener('pointercancel', cancelLongPress, true);
+    cont.addEventListener('click', onClickCapture, true);
+
     return () => {
       cont.removeEventListener('dblclick', onDblClick, true);
+      cont.removeEventListener('contextmenu', onContextMenu, true);
+      cont.removeEventListener('pointerdown', onPointerDown, true);
+      cont.removeEventListener('pointermove', onPointerMove, true);
+      cont.removeEventListener('pointerup', cancelLongPress, true);
+      cont.removeEventListener('pointercancel', cancelLongPress, true);
+      cont.removeEventListener('click', onClickCapture, true);
+      cancelLongPress();
       chartRef.current = null;
       cont.innerHTML = '';
     };
@@ -218,6 +313,17 @@ export function TreeCanvas({
       el.classList.toggle('ft-card-selected', sel.has(el.dataset.personId ?? ''));
     });
   }, [selectedIds, f3Data, progenyDepth]);
+
+  // „−" se ne prikazuje na glavnoj osobi i precima — kao i izbor, prebacivanjem
+  // klase u DOM-u (bez re-rendera kartica). focusId je u deps: re-root menja skup.
+  useEffect(() => {
+    const cont = contRef.current;
+    if (!cont) return;
+    const prot = new Set(protectedIds.map(String));
+    cont.querySelectorAll<HTMLElement>('.ft-card').forEach((el) => {
+      el.classList.toggle('ft-card-no-hide', prot.has(el.dataset.personId ?? ''));
+    });
+  }, [protectedIds, f3Data, progenyDepth, focusId]);
 
   return <div ref={contRef} className="f3 ft-tree" data-testid="tree-canvas" />;
 }

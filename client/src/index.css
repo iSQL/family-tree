@@ -206,9 +206,12 @@
   box-shadow: 0 2px 6px rgb(20 30 50 / 0.14);
   color: var(--zb-ink);
   text-align: left;
-  overflow: hidden;
+  /* Bez overflow:hidden — „−" viri iz gornjeg desnog ugla; tekst seče .ft-card-name. */
+  position: relative;
   user-select: none;
   -webkit-user-select: none;
+  /* iOS: bez sistemskog callout-a na dugi pritisak — koristimo sopstveni kontekst meni */
+  -webkit-touch-callout: none;
 }
 
 .dark .ft-card {
@@ -270,4 +273,34 @@
   font-size: 13px;
   color: var(--zb-muted);
   margin-top: 1px;
+}
+
+/* „−" u gornjem desnom uglu kartice — sakriva granu (dizajn: kontekst meni i skrivanje) */
+.ft-card-hide {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid var(--zb-border);
+  background: var(--zb-surface);
+  color: var(--zb-muted);
+  cursor: pointer;
+  padding: 0;
+  box-shadow: 0 2px 6px rgb(20 30 50 / 0.14);
+}
+
+.ft-card-hide:hover {
+  background: var(--zb-activebg);
+  color: var(--zb-activefg);
+}
+
+/* Glavna osoba i preci se ne skrivaju */
+.ft-card-main .ft-card-hide,
+.ft-card-no-hide .ft-card-hide {
+  display: none;
 }
