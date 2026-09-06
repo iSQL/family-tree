@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Controller, useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Camera } from 'lucide-react';
+import { Camera, Heart } from 'lucide-react';
 import type { Gender, PersonSlim } from '@shared/types';
 import { personInputSchema, type PersonInput } from '@shared/schemas';
 import { useOnline } from '../../hooks/useOnline';
@@ -10,6 +10,7 @@ import { DateInput } from '../ui/DateInput';
 import { Field, Input, Textarea } from '../ui/Input';
 import { Avatar } from './Avatar';
 import { RelativePicker } from './RelativePicker';
+import { AddSpouseDialog } from './AddSpouseDialog';
 import { PhotoUploadDialog } from '../photo/PhotoUploadDialog';
 import { STR } from '../../lib/strings';
 
@@ -78,6 +79,10 @@ export function PersonForm({
 }: PersonFormProps) {
   const online = useOnline();
   const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
+  const [addSpouseOpen, setAddSpouseOpen] = useState(false);
+
+  const currentPerson =
+    personId !== undefined ? (photo?.person ?? persons.find((p) => p.id === personId)) : undefined;
 
   const {
     register,
@@ -193,6 +198,36 @@ export function PersonForm({
           />
         </Field>
       </div>
+
+      {/* Povezivanje sa postojećim supružnikom — samo pri izmeni postojeće osobe.
+          Spisak i izmena brakova ostaju na prikazu detalja osobe. */}
+      {personId !== undefined && currentPerson && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-surface2/30 p-3.5 sm:p-4">
+          <span className="zb-label block text-[11px] tracking-[.16em] text-faint">
+            {STR.person.unions}
+          </span>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => setAddSpouseOpen(true)}
+            disabled={!online}
+            title={!online ? STR.common.offlineDisabled : undefined}
+          >
+            <Heart size={14} aria-hidden="true" />
+            {STR.person.addExistingSpouse}
+          </Button>
+
+          {addSpouseOpen && (
+            <AddSpouseDialog
+              open={addSpouseOpen}
+              onClose={() => setAddSpouseOpen(false)}
+              person={currentPerson}
+              allowNew={false}
+            />
+          )}
+        </div>
+      )}
 
       <Field label={STR.person.notes} error={errors.notes?.message}>
         <Textarea {...register('notes')} rows={4} />

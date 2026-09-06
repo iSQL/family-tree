@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Crown, Heart, Pencil, TreeDeciduous, Trash2, UserPlus } from 'lucide-react';
+import { Crown, Heart, Pencil, Plus, TreeDeciduous, Trash2, UserPlus } from 'lucide-react';
 import type { PersonDetail, PersonSlim, UnionWithPartner } from '@shared/types';
 import { useDeletePerson, useDeleteUnion, useUpdatePerson } from '../../hooks/useMutations';
 import { useOnline } from '../../hooks/useOnline';
@@ -8,6 +8,7 @@ import { useReadonly } from '../../hooks/useAccess';
 import { formatLifespan, formatPartialDate } from '../../lib/dates';
 import { Avatar } from './Avatar';
 import { UnionForm } from './UnionForm';
+import { AddSpouseDialog } from './AddSpouseDialog';
 import { Button } from '../ui/Button';
 import { ConfirmDialog } from '../ui/Dialog';
 import { STR } from '../../lib/strings';
@@ -36,12 +37,15 @@ function PersonChip({ person, onClick, badge }: { person: PersonSlim; onClick: (
   );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
   return (
     <section>
-      <h3 className="zb-label mb-1.5 text-[11px] tracking-[.16em] text-faint">
-        {title}
-      </h3>
+      <div className="mb-1.5 flex items-center justify-between">
+        <h3 className="zb-label text-[11px] tracking-[.16em] text-faint">
+          {title}
+        </h3>
+        {action}
+      </div>
       {children}
     </section>
   );
@@ -85,6 +89,7 @@ export function PersonDetailContent({ person, onPersonClick, onShowInTree, onDel
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [editUnion, setEditUnion] = useState<UnionWithPartner | null>(null);
   const [deleteUnionTarget, setDeleteUnionTarget] = useState<UnionWithPartner | null>(null);
+  const [addSpouseOpen, setAddSpouseOpen] = useState(false);
 
   const years = formatLifespan(person.birth_date, person.death_date);
   const offlineTitle = !online ? STR.common.offlineDisabled : undefined;
@@ -140,7 +145,7 @@ export function PersonDetailContent({ person, onPersonClick, onShowInTree, onDel
             <Button
               size="sm"
               variant="secondary"
-              onClick={() => navigate(`/person/new?spouseOf=${person.id}`)}
+              onClick={() => setAddSpouseOpen(true)}
               disabled={!online}
               title={offlineTitle}
             >
@@ -217,7 +222,23 @@ export function PersonDetailContent({ person, onPersonClick, onShowInTree, onDel
 
       {/* Brakovi */}
       {person.unions.length > 0 && (
-        <Section title={STR.person.unions}>
+        <Section
+          title={STR.person.unions}
+          action={
+            !readonly ? (
+              <button
+                type="button"
+                onClick={() => setAddSpouseOpen(true)}
+                disabled={!online}
+                title={offlineTitle}
+                className="flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-muted hover:bg-surface2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <Plus size={13} aria-hidden="true" />
+                {STR.person.addSpouse}
+              </button>
+            ) : undefined
+          }
+        >
           <ul className="space-y-2">
             {person.unions.map((u) => (
               <li key={u.id} className="flex items-center gap-2">
@@ -295,6 +316,13 @@ export function PersonDetailContent({ person, onPersonClick, onShowInTree, onDel
       />
       {editUnion && (
         <UnionForm key={editUnion.id} open onClose={() => setEditUnion(null)} union={editUnion} />
+      )}
+      {addSpouseOpen && (
+        <AddSpouseDialog
+          open={addSpouseOpen}
+          onClose={() => setAddSpouseOpen(false)}
+          person={person}
+        />
       )}
       <ConfirmDialog
         open={deleteUnionTarget !== null}

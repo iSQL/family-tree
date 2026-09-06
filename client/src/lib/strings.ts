@@ -129,6 +129,7 @@ export const STR = {
     halfMaternal: 'po majci',
     addChild: 'Dodaj dete',
     addSpouse: 'Dodaj supružnika',
+    addExistingSpouse: 'Dodaj postojećeg supružnika',
     addParent: 'Dodaj roditelja',
     deleteConfirmTitle: 'Obriši osobu?',
     deleteConfirmText:
@@ -140,7 +141,14 @@ export const STR = {
   },
 
   union: {
+    addTitle: 'Dodaj supružnika',
     editTitle: 'Izmena braka',
+    existingPersonTab: 'Postojeća osoba iz stabla',
+    newPersonTab: 'Nova osoba',
+    partnerField: 'Izaberi supružnika / partnera',
+    newPersonPrompt: 'Otvoriće se forma za unos nove osobe koja će automatski biti dodata kao supružnik.',
+    linkButton: 'Poveži supružnika',
+    newPersonButton: 'Pređi na unos nove osobe',
     type: 'Tip',
     typeMarriage: 'Brak',
     typePartnership: 'Partnerstvo',

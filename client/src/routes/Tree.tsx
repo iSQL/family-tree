@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { HeartHandshake, Plus, Printer, TreeDeciduous } from 'lucide-react';
 import { toast } from 'sonner';
+import type { PersonSlim } from '@shared/types';
 import {
   resolveProgenyDepth,
   maxDescendantDepth,
@@ -19,6 +20,7 @@ import { FamilyChooser } from '../components/family/FamilyChooser';
 import { KinshipPanel } from '../components/tree/KinshipPanel';
 import { PersonDrawer } from '../components/person/PersonDrawer';
 import { PersonSheet } from '../components/person/PersonSheet';
+import { AddSpouseDialog } from '../components/person/AddSpouseDialog';
 import { Button } from '../components/ui/Button';
 import { FullScreenSpinner } from '../components/ui/Spinner';
 import { STR } from '../lib/strings';
@@ -37,6 +39,8 @@ export default function TreePage() {
   const [kinshipSel, setKinshipSel] = useState<number[]>([]);
   // Kontekst meni nad karticom (desni klik / dugi pritisak).
   const [ctxMenu, setCtxMenu] = useState<{ id: number; x: number; y: number } | null>(null);
+  // Dijalog za dodavanje supružnika (izbor postojećeg ili novi).
+  const [addSpouseTarget, setAddSpouseTarget] = useState<PersonSlim | null>(null);
   // Ručno skrivene grane (samo prikaz — podaci netaknuti). Grana = koren +
   // supružnici + potomci; vraća se pojedinačno (čip) ili sve odjednom.
   const [hiddenBranches, setHiddenBranches] = useState<
@@ -239,12 +243,16 @@ export default function TreePage() {
       if (anchorId === null || !canWrite) return;
 
       e.preventDefault();
-      const relation = key === 'z' ? 'childOf' : 'spouseOf';
-      navigate(`/person/new?${relation}=${anchorId}`);
+      if (key === 'x') {
+        const anchor = tree?.persons.find((p) => p.id === anchorId);
+        if (anchor) setAddSpouseTarget(anchor);
+        return;
+      }
+      navigate(`/person/new?childOf=${anchorId}`);
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [selectedId, focusId, canWrite, navigate, kinshipMode, toggleKinshipMode]);
+  }, [tree, selectedId, focusId, canWrite, navigate, kinshipMode, toggleKinshipMode]);
 
   if (isPending) return <FullScreenSpinner />;
 
@@ -392,12 +400,24 @@ export default function TreePage() {
               onClose={() => setCtxMenu(null)}
               onEdit={(id) => navigate(`/person/${id}/edit`)}
               onAddChild={(id) => navigate(`/person/new?childOf=${id}`)}
-              onAddSpouse={(id) => navigate(`/person/new?spouseOf=${id}`)}
+              onAddSpouse={(id) => {
+                const p = tree.persons.find((x) => x.id === id);
+                if (p) setAddSpouseTarget(p);
+              }}
               onAddParent={(id) => navigate(`/person/new?parentOf=${id}`)}
               onHide={hideBranch}
+              onShowFromHere={focusPerson}
             />
           );
         })()}
+
+      {addSpouseTarget && (
+        <AddSpouseDialog
+          open={Boolean(addSpouseTarget)}
+          onClose={() => setAddSpouseTarget(null)}
+          person={addSpouseTarget}
+        />
+      )}
 
       {isDesktop && selectedId !== null && (
         <PersonDrawer

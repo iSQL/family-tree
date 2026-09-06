@@ -5,7 +5,7 @@
  * okvir ekrana; zatvara se na klik van menija, Escape ili izbor akcije.
  */
 import { useLayoutEffect, useEffect, useRef, useState } from 'react';
-import { EyeOff, Heart, Pencil, UserPlus, Baby } from 'lucide-react';
+import { EyeOff, Heart, Pencil, UserPlus, Baby, TreeDeciduous } from 'lucide-react';
 import type { PersonSlim } from '@shared/types';
 import { STR } from '../../lib/strings';
 
@@ -23,10 +23,11 @@ export interface TreeContextMenuProps {
   onAddSpouse: (id: number) => void;
   onAddParent: (id: number) => void;
   onHide: (id: number) => void;
+  onShowFromHere: (id: number) => void;
 }
 
 const ITEM_CLASS =
-  'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-left text-base text-ink transition-colors hover:bg-activebg';
+  'flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-left text-base text-ink transition-colors hover:bg-activebg';
 const KBD_CLASS =
   'ml-auto hidden rounded-[5px] border border-line bg-bg px-[5px] font-mono text-[11px] text-faint sm:inline-block';
 
@@ -42,6 +43,7 @@ export function TreeContextMenu({
   onAddSpouse,
   onAddParent,
   onHide,
+  onShowFromHere,
 }: TreeContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ left: x, top: y });
@@ -117,6 +119,11 @@ export function TreeContextMenu({
         </>
       )}
 
+      <button type="button" role="menuitem" className={ITEM_CLASS} onClick={run(onShowFromHere)}>
+        <TreeDeciduous size={16} className="shrink-0 text-muted" aria-hidden="true" />
+        {STR.tree.showFromHere}
+      </button>
+
       {branchCount !== null ? (
         <button type="button" role="menuitem" className={ITEM_CLASS} onClick={run(onHide)}>
           <EyeOff size={16} className="shrink-0 text-muted" aria-hidden="true" />
@@ -130,10 +137,13 @@ export function TreeContextMenu({
       )}
 
       {canWrite && (
-        <button type="button" role="menuitem" className={ITEM_CLASS} onClick={run(onEdit)}>
-          <Pencil size={16} className="shrink-0 text-muted" aria-hidden="true" />
-          {STR.tree.editPerson}
-        </button>
+        <>
+          <div className="mx-1.5 my-1 h-px bg-line" aria-hidden="true" />
+          <button type="button" role="menuitem" className={ITEM_CLASS} onClick={run(onEdit)}>
+            <Pencil size={16} className="shrink-0 text-muted" aria-hidden="true" />
+            {STR.tree.editPerson}
+          </button>
+        </>
       )}
     </div>
   );
