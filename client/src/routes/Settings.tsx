@@ -9,6 +9,7 @@ import { useReadonly } from '../hooks/useAccess';
 import { useSession } from '../hooks/useSession';
 import { useTree } from '../hooks/useTree';
 import { useTheme, type Theme } from '../lib/theme';
+import { useKinshipSystem } from '../lib/kinshipSystem';
 import { Button } from '../components/ui/Button';
 import { Card, CardHeader } from '../components/ui/Card';
 import { STR } from '../lib/strings';
@@ -42,6 +43,7 @@ function InstallSteps({ title, steps }: { title: string; steps: string[] }) {
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
+  const { kinshipSystem, setKinshipSystem } = useKinshipSystem();
   const { canInstall, promptInstall } = useInstallPrompt();
   const { data: session } = useSession();
   const { data: tree } = useTree();
@@ -83,6 +85,37 @@ export default function SettingsPage() {
                 {label}
               </Button>
             ))}
+          </div>
+        </Card>
+
+        {/* Računanje srodstva */}
+        <Card>
+          <CardHeader title={STR.settings.kinshipSection} />
+          <div className="space-y-3 p-4">
+            <p className="text-base text-muted">{STR.settings.kinshipHint}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={kinshipSystem === 'civil' ? 'primary' : 'secondary'}
+                size="sm"
+                aria-pressed={kinshipSystem === 'civil'}
+                onClick={() => setKinshipSystem('civil')}
+              >
+                {STR.kinship.systemCivil}
+              </Button>
+              <Button
+                variant={kinshipSystem === 'canon' ? 'primary' : 'secondary'}
+                size="sm"
+                aria-pressed={kinshipSystem === 'canon'}
+                onClick={() => setKinshipSystem('canon')}
+              >
+                {STR.kinship.systemCanon}
+              </Button>
+            </div>
+            <p className="text-xs leading-relaxed text-faint">
+              {kinshipSystem === 'civil'
+                ? STR.kinship.systemCivilDesc
+                : STR.kinship.systemCanonDesc}
+            </p>
           </div>
         </Card>
 

@@ -1,6 +1,7 @@
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import type { PersonSlim, TreeResponse } from '@shared/types';
 import type { KinshipResult } from '@shared/kinship';
+import { kinshipDegreeDisplay, useKinshipSystem } from '../../lib/kinshipSystem';
 import { Avatar } from '../person/Avatar';
 import { STR } from '../../lib/strings';
 
@@ -41,6 +42,7 @@ export interface KinshipResultViewProps {
 
 /** Prikaz rezultata srodstva — deljeno između kalkulatora i panela u stablu. */
 export function KinshipResultView({ result, tree, onPathClick }: KinshipResultViewProps) {
+  const { kinshipSystem } = useKinshipSystem();
   const byId = new Map(tree.persons.map((p) => [p.id, p]));
   const pathPersons = result.path
     .map((id) => byId.get(id))
@@ -51,6 +53,8 @@ export function KinshipResultView({ result, tree, onPathClick }: KinshipResultVi
   // sama osoba A ili B predak (čisto uzlazna/silazna veza).
   const interiorApex = apex !== null && apex > 0 && apex < pathPersons.length - 1;
 
+  const degreeInfo = kinshipDegreeDisplay(result, kinshipSystem);
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -59,13 +63,17 @@ export function KinshipResultView({ result, tree, onPathClick }: KinshipResultVi
             {result.term}
           </span>
         )}
-        {result.degree !== null && (
-          <span className="zb-label rounded-full bg-activebg px-3 py-1 text-[11px] tracking-[.14em] text-activefg">
-            {result.degree}. {STR.kinship.degreeSuffix}
+        {degreeInfo.degree !== null && (
+          <span
+            className="zb-label rounded-full bg-activebg px-3 py-1 text-[11px] tracking-[.14em] text-activefg"
+            title={degreeInfo.tooltip}
+          >
+            {degreeInfo.degree}. {STR.kinship.degreeWord} ({degreeInfo.badge}
+            {degreeInfo.unequalLine ? `, ${STR.kinship.unequalLine}` : ''})
           </span>
         )}
       </div>
-      <p className="text-lg text-ink">{result.description}</p>
+      <p className="text-lg text-ink">{degreeInfo.description}</p>
 
       {pathPersons.length > 1 && (
         <div>

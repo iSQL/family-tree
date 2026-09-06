@@ -15,6 +15,8 @@ import { buildKinGraph, type KinGraph } from './graph';
 import { findKinPath, findBloodLines, type KinPath } from './resolve';
 import { resolveTerm, type TermGender } from './terms';
 
+export type KinshipSystem = 'civil' | 'canon';
+
 export interface KinshipResult {
   related: boolean;
   /**
@@ -29,6 +31,12 @@ export interface KinshipResult {
   path: number[];
   /** Koleno srodstva (broj rodnih koraka na putanji); null za supružničke/tazbinske veze ili bez srodstva. */
   degree: number | null;
+  /** Rimski (građanski) stepen srodstva: zbir koraka naviše i naniže (stepsUp + stepsDown). */
+  civilDegree: number | null;
+  /** Kanonski stepen srodstva: duža od dve linije do zajedničkog pretka, max(stepsUp, stepsDown). */
+  canonDegree: number | null;
+  /** Da li su linije u kanonskom srodstvu jednake (stepsUp === stepsDown) ili nejednake (npr. stric i sinovac). null za pravu liniju, tazbinu ili nesrodnike. */
+  isCanonEqualLine: boolean | null;
   /**
    * Indeks „prevojne" osobe u `path` — najbližeg zajedničkog pretka. Do nje se ide
    * naviše (A → predak), od nje naniže (predak → B). null kad nema putanje. Za čisto
@@ -115,6 +123,9 @@ const UNRELATED: KinshipResult = {
   description: 'Nisu u krvnom srodstvu.',
   path: [],
   degree: null,
+  civilDegree: null,
+  canonDegree: null,
+  isCanonEqualLine: null,
   apexIndex: null,
 };
 
@@ -155,7 +166,12 @@ function buildResult(graph: KinGraph, kp: KinPath, a: PersonSlim, b: PersonSlim)
   const bName = b.first_name || `#${b.id}`;
 
   const hasSpouseEdge = kp.spouseAtA !== null || kp.spouseAtB !== null;
-  const degree = hasSpouseEdge ? null : kp.stepsUp + kp.stepsDown;
+  const civilDegree = hasSpouseEdge ? null : kp.stepsUp + kp.stepsDown;
+  const canonDegree = hasSpouseEdge ? null : Math.max(kp.stepsUp, kp.stepsDown);
+  const isCanonEqualLine =
+    hasSpouseEdge || kp.stepsUp === 0 || kp.stepsDown === 0 ? null : kp.stepsUp === kp.stepsDown;
+  const degree = civilDegree;
+
   // Prevoj (zajednički predak) je na kraju uzlaznog dela: opciona supružnička ivica
   // na A strani gura sve za jedno mesto udesno.
   const apexIndex = (kp.spouseAtA !== null ? 1 : 0) + kp.stepsUp;
@@ -171,6 +187,9 @@ function buildResult(graph: KinGraph, kp: KinPath, a: PersonSlim, b: PersonSlim)
       description: `${bName} je ${possessive(aName, resolved.gender)} ${resolved.term}${detailPart}${formerSuffix}.`,
       path: kp.path,
       degree,
+      civilDegree,
+      canonDegree,
+      isCanonEqualLine,
       apexIndex,
     };
   }
@@ -185,6 +204,9 @@ function buildResult(graph: KinGraph, kp: KinPath, a: PersonSlim, b: PersonSlim)
     description: `${bName} je ${chain} osobe ${aName}${formerSuffix}${degreePart}.`,
     path: kp.path,
     degree,
+    civilDegree,
+    canonDegree,
+    isCanonEqualLine,
     apexIndex,
   };
 }
@@ -195,7 +217,17 @@ function describeWithGraph(graph: KinGraph, fromId: number, toId: number): Kinsh
   const b = graph.persons.get(toId);
   if (a === undefined || b === undefined) return UNRELATED;
   if (fromId === toId) {
-    return { related: true, term: null, description: 'Ista osoba.', path: [fromId], degree: 0, apexIndex: 0 };
+    return {
+      related: true,
+      term: null,
+      description: 'Ista osoba.',
+      path: [fromId],
+      degree: 0,
+      civilDegree: 0,
+      canonDegree: 0,
+      isCanonEqualLine: null,
+      apexIndex: 0,
+    };
   }
 
   const aName = a.first_name || `#${a.id}`;
@@ -207,7 +239,15 @@ function describeWithGraph(graph: KinGraph, fromId: number, toId: number): Kinsh
     if (prija !== null) {
       const role = prija.inLawGender === 'F' ? 'snahe' : prija.inLawGender === 'M' ? 'zeta' : 'deteta';
       const formerSuffix = prija.former ? ' (bivši)' : '';
-      const base = { related: true as const, path: prija.path, degree: null, apexIndex: null };
+      const base = {
+        related: true as const,
+        path: prija.path,
+        degree: null,
+        civilDegree: null,
+        canonDegree: null,
+        isCanonEqualLine: null,
+        apexIndex: null,
+      };
       if (prija.bGender === 'M') {
         return { ...base, term: 'prijatelj', description: `${bName} je ${possessive(aName, 'm')} prijatelj (roditelj ${role})${formerSuffix}.` };
       }

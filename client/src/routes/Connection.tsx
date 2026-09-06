@@ -5,6 +5,7 @@ import type { TreeResponse } from '@shared/types';
 import { describeKinships, type KinshipResult } from '@shared/kinship';
 import { buildConnectionView } from '@shared/kinship/connection';
 import { useTree } from '../hooks/useTree';
+import { kinshipDegreeDisplay, useKinshipSystem } from '../lib/kinshipSystem';
 import { TreeCanvas } from '../components/tree/TreeCanvas';
 import { Button } from '../components/ui/Button';
 import { FullScreenSpinner } from '../components/ui/Spinner';
@@ -27,6 +28,7 @@ function parseIdParam(value: string | null): number | null {
 /** Fokusirani prikaz veze između dve osobe: samo osobe duž putanje srodstva, u f3 stablu. */
 export default function ConnectionPage() {
   const { data: tree, isPending, isError, refetch } = useTree();
+  const { kinshipSystem } = useKinshipSystem();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const aId = parseIdParam(searchParams.get('a'));
@@ -80,9 +82,11 @@ export default function ConnectionPage() {
     );
   }
 
+  const degreeInfo = kinshipDegreeDisplay(result, kinshipSystem);
+
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      {/* Zaglavlje: povratak + termin + rečenica */}
+      {/* Zaglavlje: povratak + termin + stepen + rečenica */}
       <div className="flex flex-col gap-1.5 border-b border-line bg-surface px-3 py-2">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
           <Link
@@ -97,8 +101,17 @@ export default function ConnectionPage() {
               {result.term}
             </span>
           )}
-          <p className="min-w-0 flex-1 truncate text-base text-ink" title={result.description}>
-            {result.description}
+          {degreeInfo.degree !== null && (
+            <span
+              className="zb-label rounded-full bg-activebg px-2.5 py-0.5 text-[11px] tracking-[.14em] text-activefg"
+              title={degreeInfo.tooltip}
+            >
+              {degreeInfo.degree}. {STR.kinship.degreeWord} ({degreeInfo.badge}
+              {degreeInfo.unequalLine ? `, ${STR.kinship.unequalLine}` : ''})
+            </span>
+          )}
+          <p className="min-w-0 flex-1 truncate text-base text-ink" title={degreeInfo.description}>
+            {degreeInfo.description}
           </p>
           <Link
             to={`/settings/poster?scope=kinship&a=${aId}&b=${bId}&line=${lineIndex}`}

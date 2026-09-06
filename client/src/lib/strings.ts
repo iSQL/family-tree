@@ -202,6 +202,8 @@ export const STR = {
     posterSection: 'Izvoz postera',
     posterHint: 'Napravite poster porodičnog stabla za štampu ili čuvanje kao PDF.',
     posterLink: 'Štampa / PDF poster',
+    kinshipSection: 'Računanje srodstva',
+    kinshipHint: 'Izaberite način računanja stepena krvnog srodstva koji se koristi u kalkulatoru i stablu.',
   },
 
   poster: {
@@ -297,7 +299,6 @@ export const STR = {
     swap: 'Zameni osobe',
     pickBoth: 'Izaberite dve osobe da biste videli njihovo srodstvo.',
     samePerson: 'Izabrana je ista osoba — izaberite dve različite.',
-    degreeSuffix: 'koleno',
     pathLabel: 'Putanja srodstva',
     commonAncestor: 'Zajednički predak',
     error: 'Srodstvo nije moglo da se izračuna.',
@@ -314,6 +315,18 @@ export const STR = {
     multiNote: 'U srodstvu su po više linija — izaberite koju vezu da prikažete.',
     lineWord: 'linija',
     via: 'preko',
+    systemLabel: 'Sistem srodstva',
+    systemCivil: 'Rimsko',
+    systemCivilShort: 'Rimsko',
+    systemCanon: 'Kanonsko',
+    systemCanonShort: 'Kanonsko',
+    systemCivilBadge: 'rimsko',
+    systemCanonBadge: 'kanonsko',
+    degreeWord: 'stepen',
+    equalLine: 'jednaka linija',
+    unequalLine: 'nejednaka linija',
+    systemCivilDesc: 'Broji se zbir svih rođenja od obe osobe do zajedničkog pretka (npr. braća su 2. stepen, prvi rođaci 4. stepen).',
+    systemCanonDesc: 'Broje se generacije do zajedničkog pretka po dužoj liniji (npr. braća su 1. stepen, prvi rođaci 2. stepen).',
   },
 
   gedcom: {

@@ -5,6 +5,7 @@ import type { TreeResponse } from '@shared/types';
 import { describeKinships, type KinshipResult } from '@shared/kinship';
 import { Avatar } from '../person/Avatar';
 import { KinshipResults } from '../kinship/KinshipResults';
+import { KinshipSystemSwitcher } from '../kinship/KinshipSystemSwitcher';
 import { Button } from '../ui/Button';
 import { STR } from '../../lib/strings';
 
@@ -46,7 +47,10 @@ export function KinshipPanel({ tree, selectedIds, onRemove, onSwap, onClear, onE
       <div className="pointer-events-auto flex max-h-[60vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_16px_40px_-16px_rgba(20,30,50,.55)]">
         {/* Zaglavlje */}
         <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
-          <h2 className="zb-label text-[11px] tracking-[.22em] text-goldd">{STR.kinship.title}</h2>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h2 className="zb-label text-[11px] tracking-[.22em] text-goldd">{STR.kinship.title}</h2>
+            <KinshipSystemSwitcher variant="compact" showLabel={false} />
+          </div>
           <button
             type="button"
             aria-label={STR.common.close}

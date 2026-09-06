@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { ThemeProvider, useTheme } from './lib/theme';
+import { KinshipSystemProvider } from './lib/kinshipSystem';
 import { AppShell } from './components/layout/AppShell';
 import { AuthGuard } from './components/layout/AuthGuard';
 import LoginPage from './routes/Login';
@@ -42,35 +43,37 @@ function ThemedToaster() {
 export default function App() {
   return (
     <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
-        <PwaRegistration />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route
-              element={
-                <AuthGuard>
-                  <AppShell />
-                </AuthGuard>
-              }
-            >
-              <Route path="/" element={<TreePage />} />
-              <Route path="/person/new" element={<PersonFormPage />} />
-              <Route path="/person/:id" element={<PersonDetailPage />} />
-              <Route path="/person/:id/edit" element={<PersonFormPage />} />
-              <Route path="/timeline" element={<TimelinePage />} />
-              <Route path="/birthdays" element={<BirthdaysPage />} />
-              <Route path="/calculator" element={<CalculatorPage />} />
-              <Route path="/connection" element={<ConnectionPage />} />
-              <Route path="/gedcom" element={<GedcomPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/settings/poster" element={<PosterPage />} />
-              <Route path="*" element={<NotFoundPage />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
-        <ThemedToaster />
-      </QueryClientProvider>
+      <KinshipSystemProvider>
+        <QueryClientProvider client={queryClient}>
+          <PwaRegistration />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route
+                element={
+                  <AuthGuard>
+                    <AppShell />
+                  </AuthGuard>
+                }
+              >
+                <Route path="/" element={<TreePage />} />
+                <Route path="/person/new" element={<PersonFormPage />} />
+                <Route path="/person/:id" element={<PersonDetailPage />} />
+                <Route path="/person/:id/edit" element={<PersonFormPage />} />
+                <Route path="/timeline" element={<TimelinePage />} />
+                <Route path="/birthdays" element={<BirthdaysPage />} />
+                <Route path="/calculator" element={<CalculatorPage />} />
+                <Route path="/connection" element={<ConnectionPage />} />
+                <Route path="/gedcom" element={<GedcomPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/settings/poster" element={<PosterPage />} />
+                <Route path="*" element={<NotFoundPage />} />
+              </Route>
+            </Routes>
+          </BrowserRouter>
+          <ThemedToaster />
+        </QueryClientProvider>
+      </KinshipSystemProvider>
     </ThemeProvider>
   );
 }

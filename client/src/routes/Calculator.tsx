@@ -6,6 +6,7 @@ import { describeKinships, type KinshipResult } from '@shared/kinship';
 import { useTree } from '../hooks/useTree';
 import { RelativePicker } from '../components/person/RelativePicker';
 import { KinshipResults } from '../components/kinship/KinshipResults';
+import { KinshipSystemSwitcher } from '../components/kinship/KinshipSystemSwitcher';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Field } from '../components/ui/Input';
@@ -84,6 +85,9 @@ export default function CalculatorPage() {
                 excludeIds={aId !== null ? [aId] : []}
               />
             </Field>
+          </div>
+          <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
+            <KinshipSystemSwitcher />
           </div>
         </Card>
 

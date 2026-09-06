@@ -367,6 +367,9 @@ describe('describeKinship — oblik rezultata', () => {
       description: 'Nisu u krvnom srodstvu.',
       path: [],
       degree: null,
+      civilDegree: null,
+      canonDegree: null,
+      isCanonEqualLine: null,
       apexIndex: null,
     });
   });
@@ -379,6 +382,63 @@ describe('describeKinship — oblik rezultata', () => {
     const r = describeKinship(tree, MARKO, MARKO);
     expect(r.related).toBe(true);
     expect(r.path).toEqual([MARKO]);
+    expect(r.civilDegree).toBe(0);
+    expect(r.canonDegree).toBe(0);
+  });
+});
+
+describe('describeKinship — rimski i kanonski stepen srodstva', () => {
+  it('prava linija: rimski i kanonski stepen su jednaki, isCanonEqualLine je null', () => {
+    const sin = describeKinship(tree, DRAGAN, MARKO);
+    expect(sin.civilDegree).toBe(1);
+    expect(sin.canonDegree).toBe(1);
+    expect(sin.isCanonEqualLine).toBeNull();
+
+    const unuk = describeKinship(tree, DRAGAN, LUKA);
+    expect(unuk.civilDegree).toBe(2);
+    expect(unuk.canonDegree).toBe(2);
+    expect(unuk.isCanonEqualLine).toBeNull();
+
+    const pradeda = describeKinship(tree, MARKO, MILUTIN);
+    expect(pradeda.civilDegree).toBe(3);
+    expect(pradeda.canonDegree).toBe(3);
+    expect(pradeda.isCanonEqualLine).toBeNull();
+  });
+
+  it('pobočna jednaka linija: brat/sestra (rimski 2, kanonski 1), prvi rođaci (rimski 4, kanonski 2)', () => {
+    const brat = describeKinship(tree, JELENA, MARKO);
+    expect(brat.civilDegree).toBe(2);
+    expect(brat.canonDegree).toBe(1);
+    expect(brat.isCanonEqualLine).toBe(true);
+
+    const bratOdStrica = describeKinship(tree, MARKO, IVAN);
+    expect(bratOdStrica.civilDegree).toBe(4);
+    expect(bratOdStrica.canonDegree).toBe(2);
+    expect(bratOdStrica.isCanonEqualLine).toBe(true);
+  });
+
+  it('pobočna nejednaka linija: stric (rimski 3, kanonski 2, nejednaka linija)', () => {
+    const stric = describeKinship(tree, MARKO, PETAR);
+    expect(stric.civilDegree).toBe(3);
+    expect(stric.canonDegree).toBe(2);
+    expect(stric.isCanonEqualLine).toBe(false);
+
+    const sinovac = describeKinship(tree, PETAR, MARKO);
+    expect(sinovac.civilDegree).toBe(3);
+    expect(sinovac.canonDegree).toBe(2);
+    expect(sinovac.isCanonEqualLine).toBe(false);
+  });
+
+  it('tazbina i supružnici: stepeni su null', () => {
+    const zena = describeKinship(tree, MARKO, ANA);
+    expect(zena.civilDegree).toBeNull();
+    expect(zena.canonDegree).toBeNull();
+    expect(zena.isCanonEqualLine).toBeNull();
+
+    const strina = describeKinship(tree, MARKO, NADA);
+    expect(strina.civilDegree).toBeNull();
+    expect(strina.canonDegree).toBeNull();
+    expect(strina.isCanonEqualLine).toBeNull();
   });
 });
 
