@@ -8,11 +8,14 @@ import type { AppConfig } from '../config';
 export class AppError extends Error {
   readonly status: number;
   readonly code: string;
+  /** Detalji za klijenta (npr. problemi u predlogu) — idu u ApiErrorBody.issues. */
+  readonly issues: unknown;
 
-  constructor(status: number, code: string, message?: string) {
+  constructor(status: number, code: string, message?: string, issues?: unknown) {
     super(message ?? code);
     this.status = status;
     this.code = code;
+    this.issues = issues;
   }
 }
 
@@ -37,6 +40,7 @@ export function createErrorHandler(cfg: AppConfig): ErrorRequestHandler {
     if (err instanceof AppError) {
       const body: ApiErrorBody = { error: err.code };
       if (err.message !== err.code) body.message = err.message;
+      if (err.issues !== undefined) body.issues = err.issues;
       res.status(err.status).json(body);
       return;
     }

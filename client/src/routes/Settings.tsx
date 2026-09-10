@@ -1,11 +1,24 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ChevronRight, Download, FileText, LogIn, LogOut, Monitor, Moon, Printer, Sun, type LucideIcon } from 'lucide-react';
+import {
+  ChevronRight,
+  Download,
+  FileText,
+  GitPullRequest,
+  LogIn,
+  LogOut,
+  Monitor,
+  Moon,
+  Printer,
+  Sun,
+  type LucideIcon,
+} from 'lucide-react';
 import { apiFetch } from '../api/client';
 import { useInstallPrompt } from '../hooks/useInstallPrompt';
 import { useOnline } from '../hooks/useOnline';
-import { useReadonly } from '../hooks/useAccess';
+import { useCanWrite, useReadonly } from '../hooks/useAccess';
+import { usePendingProposalCount } from '../hooks/useProposals';
 import { useSession } from '../hooks/useSession';
 import { useTree } from '../hooks/useTree';
 import { useTheme, type Theme } from '../lib/theme';
@@ -49,6 +62,8 @@ export default function SettingsPage() {
   const { data: tree } = useTree();
   const online = useOnline();
   const readonly = useReadonly();
+  const canWrite = useCanWrite();
+  const { data: pendingProposals } = usePendingProposalCount(canWrite);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -133,6 +148,29 @@ export default function SettingsPage() {
             </Link>
           </div>
         </Card>
+
+        {/* Predlozi rođaka — jedini ulaz u tu funkciju; samo za pun pristup */}
+        {canWrite && (
+          <Card>
+            <CardHeader title={STR.proposals.title} />
+            <div className="space-y-3 p-4">
+              <p className="text-base text-muted">{STR.proposals.settingsHint}</p>
+              <Link
+                to="/settings/proposals"
+                className="zb-label inline-flex items-center gap-1.5 rounded-[9px] bg-navy px-3 py-2 text-xs text-onnav shadow-[0_8px_20px_-8px_rgba(20,30,50,.5)] hover:bg-navy2"
+              >
+                <GitPullRequest size={16} aria-hidden="true" />
+                {STR.proposals.settingsLink}
+                {pendingProposals ? (
+                  <span className="ml-1 rounded-full bg-gold px-1.5 text-[10px] leading-4 text-ongold">
+                    <span className="sr-only">{STR.proposals.statusPending}: </span>
+                    {pendingProposals}
+                  </span>
+                ) : null}
+              </Link>
+            </div>
+          </Card>
+        )}
 
         {/* Instalacija */}
         <Card>

@@ -17,6 +17,8 @@ import ConnectionPage from './routes/Connection';
 import GedcomPage from './routes/Gedcom';
 import SettingsPage from './routes/Settings';
 import PosterPage from './routes/Poster';
+import ContributorProposalPage from './routes/ContributorProposal';
+import ProposalsPage from './routes/Proposals';
 import NotFoundPage from './routes/NotFound';
 
 const queryClient = new QueryClient({
@@ -49,6 +51,7 @@ export default function App() {
           <BrowserRouter>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/predlog/:token" element={<ContributorProposalPage />} />
               <Route
                 element={
                   <AuthGuard>
@@ -67,6 +70,7 @@ export default function App() {
                 <Route path="/gedcom" element={<GedcomPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/settings/poster" element={<PosterPage />} />
+                <Route path="/settings/proposals" element={<ProposalsPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Route>
             </Routes>

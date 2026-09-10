@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { Buffer } from 'node:buffer';
 import request from 'supertest';
-import { unzipSync } from 'fflate';
+import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
 import { openDb } from './db';
 import { buildBackupZip, restoreBackupZip } from './services/fullBackup';
 import { photosDir } from './services/photoService';
@@ -73,6 +73,32 @@ describe('fullBackup — round-trip (servis)', () => {
     expect(fs.existsSync(path.join(photosDir(dataDir), 'foto-a.webp'))).toBe(true);
     expect(fs.readFileSync(path.join(photosDir(dataDir), 'foto-a.thumb.webp'), 'utf8')).toBe('THUMB-SLIKA');
     expect(fs.existsSync(path.join(photosDir(dataDir), 'stray.webp'))).toBe(false);
+  });
+
+  it('čuva pozivne linkove i predloge; starija kopija bez njih ostavlja postojeće', () => {
+    const db = openDb(':memory:');
+    const dataDir = tmpDataDir();
+    db.exec(`
+      INSERT INTO proposal_tokens (id, token, label, expires_at) VALUES (1, 'tok', 'Rođaci', '2099-01-01T00:00:00.000Z');
+      INSERT INTO proposals (id, token_id, author_name, status, data) VALUES (1, 1, 'Ana', 'pending', '{"persons":[]}');
+    `);
+    const zip = buildBackupZip(db, dataDir);
+
+    db.exec('DELETE FROM proposals; DELETE FROM proposal_tokens;');
+    restoreBackupZip(db, dataDir, Buffer.from(zip));
+    expect(db.prepare('SELECT token, label FROM proposal_tokens').all()).toEqual([{ token: 'tok', label: 'Rođaci' }]);
+    expect(db.prepare('SELECT token_id, author_name, data FROM proposals').all()).toEqual([
+      { token_id: 1, author_name: 'Ana', data: '{"persons":[]}' },
+    ]);
+
+    // Kopija iz vremena pre predloga (bez polja proposal_tokens/proposals).
+    const entries = unzipSync(zip);
+    const manifest = JSON.parse(strFromU8(entries['backup.json']!)) as Record<string, unknown>;
+    delete manifest.proposal_tokens;
+    delete manifest.proposals;
+    const oldZip = zipSync({ ...entries, 'backup.json': strToU8(JSON.stringify(manifest)) });
+    restoreBackupZip(db, dataDir, Buffer.from(oldZip));
+    expect(db.prepare('SELECT COUNT(*) AS n FROM proposals').get()).toEqual({ n: 1 });
   });
 
   it('odbija ZIP bez backup.json', () => {

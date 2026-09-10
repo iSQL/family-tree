@@ -4,10 +4,7 @@ import multer from 'multer';
 import type { DB } from '../db';
 import type { AppConfig } from '../config';
 import { AppError, parseId } from '../middleware/errors';
-import { deletePhoto, photoFilePath, savePhoto } from '../services/photoService';
-
-// Striktna validacija — sprečava path traversal kroz :uuid segment.
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { PHOTO_ID_RE, deletePhoto, photoFilePath, savePhoto } from '../services/photoService';
 
 export function createPhotosRouter(db: DB, cfg: AppConfig): Router {
   const router = Router();
@@ -27,7 +24,7 @@ export function createPhotosRouter(db: DB, cfg: AppConfig): Router {
 
   router.get('/photos/:uuid', (req, res) => {
     const uuid = req.params.uuid;
-    if (!UUID_RE.test(uuid)) throw new AppError(400, 'validation', 'Neispravan identifikator slike');
+    if (!PHOTO_ID_RE.test(uuid)) throw new AppError(400, 'validation', 'Neispravan identifikator slike');
     const size = req.query.size === undefined || req.query.size === 'full' ? 'full' : req.query.size === 'thumb' ? 'thumb' : null;
     if (size === null) throw new AppError(400, 'validation', "Parametar size mora biti 'full' ili 'thumb'");
 

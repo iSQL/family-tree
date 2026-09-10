@@ -15,6 +15,7 @@ import { createUnionsRouter } from './routes/unions';
 import { createPhotosRouter } from './routes/photos';
 import { createGedcomRouter } from './routes/gedcom';
 import { createBackupRouter } from './routes/backup';
+import { createAdminProposalsRouter, createPublicProposalsRouter } from './routes/proposals';
 
 /** Sklapa Express app bez listen-a — supertest radi direktno nad njim. */
 export function createApp(cfg: AppConfig, db: DB): express.Express {
@@ -58,6 +59,8 @@ export function createApp(cfg: AppConfig, db: DB): express.Express {
     res.json({ ok: true });
   });
   app.use('/api/auth', createAuthRouter(cfg));
+  // Saradnici sa pozivnim linkom — token je jedini ključ (stablo, sličice, slanje predloga).
+  app.use('/api/proposals/public', createPublicProposalsRouter(db, cfg));
 
   // sve ispod je iza auth-a
   app.use('/api', requireAuth(cfg));
@@ -68,6 +71,7 @@ export function createApp(cfg: AppConfig, db: DB): express.Express {
   app.use('/api', createPhotosRouter(db, cfg));
   app.use('/api/gedcom', createGedcomRouter(db));
   app.use('/api/backup', createBackupRouter(db, cfg));
+  app.use('/api/proposals', createAdminProposalsRouter(db, cfg));
 
   app.use('/api', (_req, res) => {
     res.status(404).json({ error: 'not_found' });

@@ -5,6 +5,9 @@ import sharp from 'sharp';
 import type { DB } from '../db';
 import { AppError } from '../middleware/errors';
 
+/** Striktna validacija imena slike (UUID) — sprečava path traversal kroz segment putanje. */
+export const PHOTO_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function photosDir(dataDir: string): string {
   return path.join(path.resolve(dataDir), 'photos');
 }

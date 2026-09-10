@@ -122,3 +122,157 @@ export interface GedcomImportResult {
   warnings: GedcomWarning[];
   dry_run: boolean;
 }
+
+export type ProposalStatus = 'pending' | 'approved' | 'rejected';
+
+/** Pozivni link za predloge saradnika (administratorski prikaz). */
+export interface ProposalToken {
+  id: number;
+  token: string;
+  /** Kome je link namenjen (npr. „Rođaci iz Niša"). */
+  label: string;
+  created_at: string;
+  /** ISO vreme isteka. Rok je obavezan — null postoji samo kod starih zapisa i takav link ne važi. */
+  expires_at: string | null;
+  revoked: boolean;
+  proposal_count: number;
+}
+
+/** Odgovor GET /api/proposals/public/tokens/:token — samo ono što saradnik treba da vidi. */
+export interface PublicTokenInfo {
+  label: string;
+  expires_at: string;
+}
+
+/**
+ * Referenca na osobu unutar predloga: broj = postojeća osoba iz stabla,
+ * string = temp_id nove osobe iz istog predloga.
+ */
+export type PersonRef = number | string;
+
+export type ParentRole = 'father' | 'mother';
+
+/** Nova osoba iz predloga — ista polja kao Person; roditelj može biti i druga nova osoba. */
+export interface ProposedPerson {
+  temp_id: string;
+  first_name: string;
+  last_name: string;
+  maiden_name: string | null;
+  gender: Gender;
+  title: string | null;
+  birth_date: string | null;
+  death_date: string | null;
+  birth_place: string | null;
+  notes: string | null;
+  father_id: PersonRef | null;
+  mother_id: PersonRef | null;
+}
+
+/** Brak iz predloga — partneri mogu biti postojeće ili nove osobe. */
+export interface ProposedUnion {
+  partner1_id: PersonRef;
+  partner2_id: PersonRef;
+  type: UnionType;
+  start_date: string | null;
+  end_date: string | null;
+  end_reason: UnionEndReason | null;
+  notes: string | null;
+}
+
+/** Nova osoba (parent_id = temp_id) postaje otac/majka POSTOJEĆE osobe — samo na praznom mestu. */
+export interface ProposedParentLink {
+  child_id: number;
+  parent_id: string;
+  role: ParentRole;
+}
+
+/** Kako je postojeća osoba izgledala kad je predlog poslat — otkriva da ID sada pokazuje na nekog drugog. */
+export interface ProposalRefSnapshot {
+  first_name: string;
+  last_name: string;
+  birth_date: string | null;
+}
+
+/** Sadržaj predloga (kolona proposals.data, JSON). */
+export interface ProposalData {
+  persons: ProposedPerson[];
+  unions: ProposedUnion[];
+  parent_links: ProposedParentLink[];
+  /** Ključ = ID postojeće osobe. Popunjava server pri slanju — klijentu se ne veruje. */
+  refs: Record<string, ProposalRefSnapshot>;
+}
+
+export type ProposalIssueCode =
+  | 'duplicate_temp_id'
+  | 'invalid_merge'
+  | 'missing_person'
+  | 'stale_ref'
+  | 'unverified_ref'
+  | 'unknown_ref'
+  | 'self_parent'
+  | 'same_parents'
+  | 'parent_gender'
+  | 'parent_slot_taken'
+  | 'cycle'
+  | 'invalid_union'
+  | 'union_exists'
+  | 'possible_duplicate';
+
+/** Problem u predlogu. Kod 409/422 grešaka stiže i u ApiErrorBody.issues. */
+export interface ProposalIssue {
+  /** error = blokira slanje/spajanje; warning = administrator odlučuje. */
+  severity: 'error' | 'warning';
+  code: ProposalIssueCode;
+  message: string;
+  /** Nova osoba na koju se problem odnosi. */
+  temp_id?: string;
+  /** possible_duplicate: postojeće osobe koje liče na novu. */
+  candidate_ids?: number[];
+}
+
+export interface ProposalCheck {
+  issues: ProposalIssue[];
+  can_approve: boolean;
+}
+
+/** Rešen duplikat: nova osoba iz predloga je zapravo postojeća osoba iz stabla. */
+export interface ProposalMerge {
+  temp_id: string;
+  person_id: number;
+}
+
+/** Odgovor POST /api/proposals/:id/approve. */
+export interface ProposalApproveResult {
+  persons_created: number;
+  persons_merged: number;
+  parent_links_applied: number;
+  unions_created: number;
+  unions_skipped: number;
+}
+
+export interface Proposal {
+  id: number;
+  token_id: number | null;
+  token_label: string | null;
+  author_name: string;
+  notes: string | null;
+  status: ProposalStatus;
+  data: ProposalData;
+  created_at: string;
+  reviewed_at: string | null;
+  review_notes: string | null;
+}
+
+export interface ProposalListItem {
+  id: number;
+  token_id: number | null;
+  token_label: string | null;
+  author_name: string;
+  notes: string | null;
+  status: ProposalStatus;
+  created_at: string;
+  reviewed_at: string | null;
+  person_count: number;
+  union_count: number;
+}
+

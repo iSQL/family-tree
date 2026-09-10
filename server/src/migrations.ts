@@ -55,6 +55,35 @@ CREATE INDEX idx_unions_p2 ON unions(partner2_id);
     // Ručno označena glava porodice (silazna loza) — interno svojstvo, van GEDCOM-a.
     sql: `ALTER TABLE persons ADD COLUMN is_family_head INTEGER NOT NULL DEFAULT 0;`,
   },
+  {
+    version: 3,
+    // Podrška za tokene pozivnica i predloge novih osoba/brakova (Git PR model).
+    sql: `
+CREATE TABLE proposal_tokens (
+  id           INTEGER PRIMARY KEY,
+  token        TEXT NOT NULL UNIQUE,
+  label        TEXT NOT NULL,
+  created_at   TEXT NOT NULL DEFAULT (datetime('now')),
+  expires_at   TEXT,
+  revoked      INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX idx_proposal_tokens_token ON proposal_tokens(token);
+
+CREATE TABLE proposals (
+  id           INTEGER PRIMARY KEY,
+  token_id     INTEGER REFERENCES proposal_tokens(id) ON DELETE SET NULL,
+  author_name  TEXT NOT NULL,
+  notes        TEXT,
+  status       TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
+  data         TEXT NOT NULL,
+  created_at   TEXT NOT NULL DEFAULT (datetime('now')),
+  reviewed_at  TEXT,
+  review_notes TEXT
+);
+CREATE INDEX idx_proposals_status ON proposals(status);
+CREATE INDEX idx_proposals_token ON proposals(token_id);
+`,
+  },
 ];
 
 export function runMigrations(db: DB): void {

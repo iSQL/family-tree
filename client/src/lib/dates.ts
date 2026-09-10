@@ -1,5 +1,16 @@
 /** Re-export deljene logike datuma + klijentski pomoćnici za prikaz. */
+import { formatPartialDate } from '@shared/partialDate';
+
 export * from '@shared/partialDate';
+
+/** ISO vremenska oznaka sa servera → lokalni datum za prikaz ('2026-09-10T08:00:00Z' → '10.09.2026.'). */
+export function formatTimestampDate(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return formatPartialDate(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+}
 
 const YEAR_RE = /^\d{4}/;
 
