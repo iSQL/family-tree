@@ -420,7 +420,6 @@ export const STR = {
     noTokens: 'Još nema pozivnih linkova.',
     tokenActive: 'Aktivan',
     tokenExpired: 'Istekao',
-    tokenRevoked: 'Opozvan',
     tokenSubmitted: 'Poslato na odobrenje',
     tokenCreated: 'Napravljen',
     tokenExpires: 'Važi do',
@@ -432,8 +431,9 @@ export const STR = {
     revoke: 'Opozovi',
     confirmRevokeTitle: 'Opozvati link?',
     confirmRevokeText:
-      'Link odmah prestaje da važi i niko više ne može da menja granu. Postojeće izmene ostaju za pregled.',
-    revoked: 'Link je opozvan.',
+      'Link odmah prestaje da važi i trajno se briše zajedno sa svojom granom — nespojene izmene se gube.',
+    confirmRevokeChanges: 'Nespojenih izmena:',
+    revoked: 'Link je opozvan i obrisan.',
     // Pregled grane
     backToLinks: 'Nazad na linkove',
     reviewKicker: 'PREGLED GRANE',

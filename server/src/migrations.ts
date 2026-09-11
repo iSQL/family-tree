@@ -142,6 +142,14 @@ CREATE INDEX IF NOT EXISTS idx_proposal_ops_token ON proposal_ops(token_id, id);
 `);
     },
   },
+  {
+    version: 5,
+    // Opoziv linka odsad trajno briše link sa granom — ukloni i ranije opozvane.
+    sql: `
+DELETE FROM proposal_ops WHERE token_id IN (SELECT id FROM proposal_tokens WHERE revoked = 1);
+DELETE FROM proposal_tokens WHERE revoked = 1;
+`,
+  },
 ];
 
 export function runMigrations(db: DB): void {

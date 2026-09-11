@@ -72,16 +72,25 @@ describe('pozivni link i ulazak u granu', () => {
     await request(app).get(`/api/proposals/public/tokens/${other.token}`).expect(404);
   });
 
-  it('opozivanje linka zatvara već otvorenu granu', async () => {
-    const { app } = testApp();
+  it('opoziv briše link sa granom i slikama grane, a otvorena grana se zatvara', async () => {
+    const { app, db, cfg } = testApp();
+    const petar = insertPerson(db, { first_name: 'Petar' });
     const link = await createLink(app);
     const agent = await enterBranch(app, link.token);
-    await agent.get('/api/tree').expect(200);
+    await agent.post('/api/persons').send({ first_name: 'Luka' }).expect(201);
+    const png = await sharp({ create: { width: 8, height: 8, channels: 3, background: '#888888' } }).png().toBuffer();
+    const photo = (await agent.post(`/api/persons/${petar}/photo`).attach('photo', png, 'a.png').expect(200)).body.photo_id;
 
     await request(app).delete(`/api/proposals/manage/tokens/${link.id}`).expect(204);
+    expect((await request(app).get('/api/proposals/manage/tokens').expect(200)).body).toEqual([]);
+    await request(app).get(`/api/proposals/manage/tokens/${link.id}`).expect(404);
+    expect(opCount(db)).toBe(0);
+    expect(fs.existsSync(photoFilePath(cfg.dataDir, photo, 'full'))).toBe(false);
+
     const res = await agent.get('/api/tree').expect(403);
     expect(res.body.error).toBe('branch_closed');
     expect((await agent.get('/api/auth/session')).body.branch).toBeNull();
+    await request(app).delete(`/api/proposals/manage/tokens/${link.id}`).expect(404);
   });
 
   it('grana radi bez lozinke, ali ne otvara GEDCOM, kopije ni administraciju', async () => {

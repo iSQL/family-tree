@@ -135,7 +135,6 @@ export interface ProposalToken {
   label: string;
   created_at: string;
   expires_at: string;
-  revoked: boolean;
   /** Broj izmena u grani koje čekaju pregled. */
   change_count: number;
   /** Kad je grana poslata na odobrenje (null = nije poslata ili je sve pregledano). */

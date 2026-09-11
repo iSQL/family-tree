@@ -41,22 +41,7 @@ async function copyInvite(token: string): Promise<void> {
   }
 }
 
-function tokenState(t: ProposalToken): 'active' | 'expired' | 'revoked' {
-  if (t.revoked) return 'revoked';
-  return Date.parse(t.expires_at) > Date.now() ? 'active' : 'expired';
-}
-
-const STATE_LABEL = {
-  active: STR.proposals.tokenActive,
-  expired: STR.proposals.tokenExpired,
-  revoked: STR.proposals.tokenRevoked,
-} as const;
-
-const STATE_STYLE = {
-  active: 'bg-surface2 text-heading',
-  expired: 'bg-surface2 text-muted',
-  revoked: 'bg-surface2 text-danger',
-} as const;
+const isActive = (t: ProposalToken) => Date.parse(t.expires_at) > Date.now();
 
 const BADGE = 'zb-label rounded-full px-2 py-0.5 text-[10px] tracking-[.12em]';
 
@@ -150,13 +135,15 @@ export function ProposalTokensPanel() {
         ) : (
           <ul className="divide-y divide-line">
             {tokens.map((t) => {
-              const state = tokenState(t);
+              const active = isActive(t);
               return (
                 <li key={t.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                   <div className="min-w-0 space-y-0.5">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-medium text-heading">{t.label}</span>
-                      <span className={`${BADGE} ${STATE_STYLE[state]}`}>{STATE_LABEL[state]}</span>
+                      <span className={`${BADGE} bg-surface2 ${active ? 'text-heading' : 'text-muted'}`}>
+                        {active ? STR.proposals.tokenActive : STR.proposals.tokenExpired}
+                      </span>
                       {t.submitted_at && t.change_count > 0 && (
                         <span className={`${BADGE} bg-activebg text-activefg`}>{STR.proposals.tokenSubmitted}</span>
                       )}
@@ -181,23 +168,21 @@ export function ProposalTokensPanel() {
                       <Eye size={13} aria-hidden="true" />
                       {STR.proposals.review}
                     </Link>
-                    {state === 'active' && (
+                    {active && (
                       <Button variant="secondary" size="sm" onClick={() => void copyInvite(t.token)}>
                         <Copy size={13} aria-hidden="true" />
                         {STR.proposals.copyLink}
                       </Button>
                     )}
-                    {!t.revoked && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setRevoking(t)}
-                        disabled={!online}
-                        aria-label={`${STR.proposals.revoke}: ${t.label}`}
-                      >
-                        <Trash2 size={15} className="text-danger" aria-hidden="true" />
-                      </Button>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setRevoking(t)}
+                      disabled={!online}
+                      aria-label={`${STR.proposals.revoke}: ${t.label}`}
+                    >
+                      <Trash2 size={15} className="text-danger" aria-hidden="true" />
+                    </Button>
                   </div>
                 </li>
               );
@@ -239,7 +224,11 @@ export function ProposalTokensPanel() {
       <ConfirmDialog
         open={revoking !== null}
         title={STR.proposals.confirmRevokeTitle}
-        text={STR.proposals.confirmRevokeText}
+        text={
+          revoking && revoking.change_count > 0
+            ? `${STR.proposals.confirmRevokeText} ${STR.proposals.confirmRevokeChanges} ${countOf(revoking.change_count, STR.branch.changeForms)}.`
+            : STR.proposals.confirmRevokeText
+        }
         confirmLabel={STR.proposals.revoke}
         onConfirm={confirmRevoke}
         onClose={() => setRevoking(null)}

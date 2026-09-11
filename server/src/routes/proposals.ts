@@ -86,7 +86,7 @@ export function createAdminProposalsRouter(db: DB, cfg: AppConfig): Router {
   });
 
   router.delete('/manage/tokens/:id', (req, res) => {
-    revokeToken(db, parseId(req.params.id));
+    revokeToken(db, cfg.dataDir, parseId(req.params.id));
     res.status(204).end();
   });
 

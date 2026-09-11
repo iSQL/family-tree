@@ -97,7 +97,6 @@ function toToken(db: DB, row: TokenRow): ProposalToken {
     label: row.label,
     created_at: row.created_at,
     expires_at: row.expires_at,
-    revoked: row.revoked === 1,
     change_count: hasOps(db, row.id) ? computeChanges(db, row.id).changes.length : 0,
     submitted_at: row.submitted_at,
     submitted_by: row.submitted_by,
@@ -133,9 +132,15 @@ export function getToken(db: DB, id: number): ProposalToken {
   return toToken(db, getTokenRow(db, id)!);
 }
 
-export function revokeToken(db: DB, id: number): void {
-  const info = db.prepare('UPDATE proposal_tokens SET revoked = 1 WHERE id = ?').run(id);
-  if (info.changes === 0) throw new AppError(404, 'not_found', 'Link nije pronađen');
+/** Opoziv trajno briše link sa celom granom (operacije kaskadno) i slikama koje je koristila samo grana. */
+export function revokeToken(db: DB, dataDir: string, id: number): void {
+  assertTokenExists(db, id);
+  const photos = loadOps(db, id).flatMap((op) => {
+    const photo = parsePayload(op).changes?.photo_id?.to;
+    return typeof photo === 'string' ? [photo] : [];
+  });
+  db.prepare('DELETE FROM proposal_tokens WHERE id = ?').run(id);
+  deleteUnusedPhotos(db, dataDir, photos);
 }
 
 /** Link koji pušta u granu: postoji, nije opozvan, rok nije istekao. */

@@ -84,3 +84,22 @@ describe('migracija 4 — predlozi prelaze na grane', () => {
     expect(tables(db)).not.toContain('proposals');
   });
 });
+
+describe('migracija 5 — opozvani linkovi se brišu', () => {
+  it('uklanja opozvane linkove zajedno sa njihovim granama', () => {
+    const db = dbAtVersion(4);
+    db.exec(`
+      INSERT INTO proposal_tokens (id, token, label, created_at, expires_at, revoked) VALUES
+        (1, 'opozvan', 'A', '2026-09-10T08:30:00.000Z', '2026-10-10T08:30:00.000Z', 1),
+        (2, 'aktivan', 'B', '2026-09-10T08:30:00.000Z', '2026-10-10T08:30:00.000Z', 0);
+      INSERT INTO proposal_ops (token_id, entity, entity_id, action, payload, author, created_at) VALUES
+        (1, 'person', 1000000001, 'create', '{}', 'Ana', '2026-09-11T00:00:00.000Z'),
+        (2, 'person', 1000000001, 'create', '{}', 'Boris', '2026-09-11T00:00:00.000Z');
+    `);
+
+    runMigrations(db);
+
+    expect(db.prepare('SELECT token FROM proposal_tokens').all()).toEqual([{ token: 'aktivan' }]);
+    expect(db.prepare('SELECT author FROM proposal_ops').all()).toEqual([{ author: 'Boris' }]);
+  });
+});
