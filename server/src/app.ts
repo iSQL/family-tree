@@ -34,7 +34,8 @@ export function createApp(cfg: AppConfig, db: DB): express.Express {
   );
 
   if (cfg.nodeEnv !== 'test') {
-    app.use(pinoHttp());
+    // Kolačić sesije u logu = preuzimanje sesije za svakoga ko čita logove.
+    app.use(pinoHttp({ redact: ['req.headers.cookie', 'res.headers["set-cookie"]'] }));
   }
 
   app.use(express.json({ limit: '1mb' }));
