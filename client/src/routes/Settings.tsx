@@ -17,8 +17,8 @@ import {
 import { apiFetch } from '../api/client';
 import { useInstallPrompt } from '../hooks/useInstallPrompt';
 import { useOnline } from '../hooks/useOnline';
-import { useCanWrite, useReadonly } from '../hooks/useAccess';
-import { usePendingProposalCount } from '../hooks/useProposals';
+import { useBranch, useCanAdminister, useReadonly } from '../hooks/useAccess';
+import { useBranchMutations, usePendingProposalCount } from '../hooks/useProposals';
 import { useSession } from '../hooks/useSession';
 import { useTree } from '../hooks/useTree';
 import { useTheme, type Theme } from '../lib/theme';
@@ -62,8 +62,10 @@ export default function SettingsPage() {
   const { data: tree } = useTree();
   const online = useOnline();
   const readonly = useReadonly();
-  const canWrite = useCanWrite();
-  const { data: pendingProposals } = usePendingProposalCount(canWrite);
+  const branch = useBranch();
+  const canAdminister = useCanAdminister();
+  const { data: pendingProposals } = usePendingProposalCount(canAdminister);
+  const { exit } = useBranchMutations();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -78,6 +80,15 @@ export default function SettingsPage() {
       toast.error(err instanceof Error ? err.message : STR.errors.generic);
     },
   });
+
+  const leaveBranch = () =>
+    exit.mutate(undefined, {
+      onSuccess: () => {
+        toast.success(STR.branch.exited);
+        navigate('/', { replace: true });
+      },
+      onError: (err) => toast.error(err instanceof Error ? err.message : STR.errors.generic),
+    });
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -149,8 +160,8 @@ export default function SettingsPage() {
           </div>
         </Card>
 
-        {/* Predlozi rođaka — jedini ulaz u tu funkciju; samo za pun pristup */}
-        {canWrite && (
+        {/* Predlozi rođaka — jedini ulaz u tu funkciju; samo pun pristup nad glavnim stablom */}
+        {canAdminister && (
           <Card>
             <CardHeader title={STR.proposals.title} />
             <div className="space-y-3 p-4">
@@ -163,7 +174,7 @@ export default function SettingsPage() {
                 {STR.proposals.settingsLink}
                 {pendingProposals ? (
                   <span className="ml-1 rounded-full bg-gold px-1.5 text-[10px] leading-4 text-ongold">
-                    <span className="sr-only">{STR.proposals.statusPending}: </span>
+                    <span className="sr-only">{STR.proposals.tokenSubmitted}: </span>
                     {pendingProposals}
                   </span>
                 ) : null}
@@ -200,7 +211,17 @@ export default function SettingsPage() {
         <Card>
           <CardHeader title={STR.settings.account} />
           <div className="p-4">
-            {session?.auth_mode === 'disabled' ? (
+            {branch ? (
+              <div className="space-y-3">
+                <p className="text-base text-activefg">
+                  {STR.branch.banner}: {branch.label} · {branch.author_name}
+                </p>
+                <Button variant="secondary" onClick={leaveBranch} disabled={exit.isPending}>
+                  <LogOut size={16} aria-hidden="true" />
+                  {STR.branch.exit}
+                </Button>
+              </div>
+            ) : session?.auth_mode === 'disabled' ? (
               <p className="text-base text-muted">{STR.settings.authDisabledNote}</p>
             ) : !session?.authenticated ? (
               // Neprijavljeni gost u režimu javnog čitanja
@@ -251,13 +272,16 @@ export default function SettingsPage() {
                 </dd>
               </div>
             </dl>
-            <Link
-              to="/gedcom"
-              className="zb-label inline-flex items-center gap-1.5 rounded-[9px] bg-navy px-3 py-2 text-xs text-onnav shadow-[0_8px_20px_-8px_rgba(20,30,50,.5)] hover:bg-navy2"
-            >
-              <FileText size={16} aria-hidden="true" />
-              {STR.settings.gedcomLink}
-            </Link>
+            {/* GEDCOM radi samo nad glavnim stablom */}
+            {!branch && (
+              <Link
+                to="/gedcom"
+                className="zb-label inline-flex items-center gap-1.5 rounded-[9px] bg-navy px-3 py-2 text-xs text-onnav shadow-[0_8px_20px_-8px_rgba(20,30,50,.5)] hover:bg-navy2"
+              >
+                <FileText size={16} aria-hidden="true" />
+                {STR.settings.gedcomLink}
+              </Link>
+            )}
           </div>
         </Card>
       </div>

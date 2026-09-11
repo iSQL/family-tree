@@ -128,15 +128,21 @@ function assertValidParent(db: DB, parentId: number | null, personId: number | n
   }
 }
 
-export function createPerson(db: DB, input: PersonInput): Person {
+const PERSON_INSERT_COLS =
+  'first_name, last_name, maiden_name, gender, title, birth_date, death_date, birth_place, notes, father_id, mother_id';
+const PERSON_INSERT_PARAMS =
+  '@first_name, @last_name, @maiden_name, @gender, @title, @birth_date, @death_date, @birth_place, @notes, @father_id, @mother_id';
+
+/** `id` zadaje samo režim predloga — osobe iz grane imaju ID-jeve iznad glavnog stabla. */
+export function createPerson(db: DB, input: PersonInput, id?: number): Person {
   assertValidParent(db, input.father_id, null);
   assertValidParent(db, input.mother_id, null);
-  const info = db
-    .prepare(
-      `INSERT INTO persons (first_name, last_name, maiden_name, gender, title, birth_date, death_date, birth_place, notes, father_id, mother_id)
-       VALUES (@first_name, @last_name, @maiden_name, @gender, @title, @birth_date, @death_date, @birth_place, @notes, @father_id, @mother_id)`,
-    )
-    .run(input);
+  const info =
+    id === undefined
+      ? db.prepare(`INSERT INTO persons (${PERSON_INSERT_COLS}) VALUES (${PERSON_INSERT_PARAMS})`).run(input)
+      : db
+          .prepare(`INSERT INTO persons (id, ${PERSON_INSERT_COLS}) VALUES (@id, ${PERSON_INSERT_PARAMS})`)
+          .run({ ...input, id });
   return getPerson(db, Number(info.lastInsertRowid))!;
 }
 

@@ -15,6 +15,7 @@ import { createUnionsRouter } from './routes/unions';
 import { createPhotosRouter } from './routes/photos';
 import { createGedcomRouter } from './routes/gedcom';
 import { createBackupRouter } from './routes/backup';
+import { createBranchRouter } from './routes/branch';
 import { createAdminProposalsRouter, createPublicProposalsRouter } from './routes/proposals';
 
 /** Sklapa Express app bez listen-a — supertest radi direktno nad njim. */
@@ -58,9 +59,11 @@ export function createApp(cfg: AppConfig, db: DB): express.Express {
   app.get('/api/health', (_req, res) => {
     res.json({ ok: true });
   });
-  app.use('/api/auth', createAuthRouter(cfg));
-  // Saradnici sa pozivnim linkom — token je jedini ključ (stablo, sličice, slanje predloga).
-  app.use('/api/proposals/public', createPublicProposalsRouter(db, cfg));
+  app.use('/api/auth', createAuthRouter(cfg, db));
+  // Pozivni link: provera i ulazak u režim predloga (bez prijave).
+  app.use('/api/proposals/public', createPublicProposalsRouter(db));
+  // Režim predloga: iste rute nad granom linka; obične sesije samo prolaze dalje.
+  app.use('/api', createBranchRouter(db, cfg));
 
   // sve ispod je iza auth-a
   app.use('/api', requireAuth(cfg));

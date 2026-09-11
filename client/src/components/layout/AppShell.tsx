@@ -7,6 +7,7 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react';
+import { BranchBanner } from './BranchBanner';
 import { OfflineBanner } from './OfflineBanner';
 import { ReadonlyBanner } from './ReadonlyBanner';
 import { SearchBar } from '../search/SearchBar';
@@ -54,6 +55,7 @@ export function AppShell() {
     <div className="flex h-dvh flex-col pt-[env(safe-area-inset-top)]">
       <OfflineBanner />
       <ReadonlyBanner />
+      <BranchBanner />
 
       {/* Desktop top bar */}
       <header className="hidden items-center gap-4 border-b border-line bg-surface px-4 py-2 md:flex">

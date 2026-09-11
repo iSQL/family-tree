@@ -41,6 +41,7 @@ describe('auth — password mode', () => {
       auth_mode: 'password',
       readonly: false,
       public_read: false,
+      branch: null,
     });
 
     const logout = await agent.post('/api/auth/logout');
@@ -87,6 +88,7 @@ describe('auth — read-only lozinka', () => {
       auth_mode: 'password',
       readonly: true,
       public_read: false,
+      branch: null,
     });
 
     const tree = await agent.get('/api/tree');
@@ -142,6 +144,7 @@ describe('auth — javno čitanje (PUBLIC_READ)', () => {
       auth_mode: 'password',
       readonly: false,
       public_read: true,
+      branch: null,
     });
   });
 
@@ -163,6 +166,7 @@ describe('auth — disabled mode', () => {
       auth_mode: 'disabled',
       readonly: false,
       public_read: false,
+      branch: null,
     });
 
     const tree = await request(app).get('/api/tree');

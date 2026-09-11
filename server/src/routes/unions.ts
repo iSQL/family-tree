@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import type { DB } from '../db';
 import { unionInputSchema, unionPatchSchema } from '@shared/schemas';
-import { AppError, parseId } from '../middleware/errors';
+import { parseId } from '../middleware/errors';
 import { onlyPresentKeys } from '../lib/patch';
-import { createUnion, getUnion } from '../services/unionService';
+import { createUnion, deleteUnion, updateUnion } from '../services/unionService';
 
 export function createUnionsRouter(db: DB): Router {
   const router = Router();
@@ -15,20 +15,12 @@ export function createUnionsRouter(db: DB): Router {
 
   router.patch('/:id', (req, res) => {
     const id = parseId(req.params.id);
-    if (!getUnion(db, id)) throw new AppError(404, 'not_found');
     const patch = onlyPresentKeys(unionPatchSchema.parse(req.body), req.body);
-    const entries = Object.entries(patch).filter(([, v]) => v !== undefined);
-    if (entries.length > 0) {
-      const setSql = entries.map(([k]) => `${k} = @${k}`).join(', ');
-      db.prepare(`UPDATE unions SET ${setSql} WHERE id = @__id`).run({ ...Object.fromEntries(entries), __id: id });
-    }
-    res.json(getUnion(db, id));
+    res.json(updateUnion(db, id, patch));
   });
 
   router.delete('/:id', (req, res) => {
-    const id = parseId(req.params.id);
-    const info = db.prepare('DELETE FROM unions WHERE id = ?').run(id);
-    if (info.changes === 0) throw new AppError(404, 'not_found');
+    deleteUnion(db, parseId(req.params.id));
     res.status(204).end();
   });
 

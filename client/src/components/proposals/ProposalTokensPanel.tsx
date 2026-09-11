@@ -1,17 +1,15 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Copy, Plus, Trash2 } from 'lucide-react';
-import {
-  PROPOSAL_TOKEN_DAYS,
-  createProposalTokenSchema,
-  type CreateProposalTokenInput,
-} from '@shared/schemas';
+import { Copy, Eye, Plus, Trash2 } from 'lucide-react';
+import { PROPOSAL_TOKEN_DAYS, createProposalTokenSchema, type CreateProposalTokenInput } from '@shared/schemas';
 import type { ProposalToken } from '@shared/types';
 import { useOnline } from '../../hooks/useOnline';
 import { inviteUrl, useProposalAdminMutations, useProposalTokens } from '../../hooks/useProposals';
 import { formatTimestampDate } from '../../lib/dates';
+import { countOf } from '../../lib/plural';
 import { STR } from '../../lib/strings';
 import { Button } from '../ui/Button';
 import { Card, CardHeader } from '../ui/Card';
@@ -45,7 +43,7 @@ async function copyInvite(token: string): Promise<void> {
 
 function tokenState(t: ProposalToken): 'active' | 'expired' | 'revoked' {
   if (t.revoked) return 'revoked';
-  return t.expires_at && Date.parse(t.expires_at) > Date.now() ? 'active' : 'expired';
+  return Date.parse(t.expires_at) > Date.now() ? 'active' : 'expired';
 }
 
 const STATE_LABEL = {
@@ -55,12 +53,14 @@ const STATE_LABEL = {
 } as const;
 
 const STATE_STYLE = {
-  active: 'bg-activebg text-activefg',
+  active: 'bg-surface2 text-heading',
   expired: 'bg-surface2 text-muted',
   revoked: 'bg-surface2 text-danger',
 } as const;
 
-/** Pravljenje, kopiranje i opoziv pozivnih linkova. */
+const BADGE = 'zb-label rounded-full px-2 py-0.5 text-[10px] tracking-[.12em]';
+
+/** Pravljenje, kopiranje i opoziv pozivnih linkova; svaki link je jedna grana za pregled. */
 export function ProposalTokensPanel() {
   const online = useOnline();
   const { data: tokens, isLoading, isError, refetch } = useProposalTokens();
@@ -156,19 +156,31 @@ export function ProposalTokensPanel() {
                   <div className="min-w-0 space-y-0.5">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-medium text-heading">{t.label}</span>
-                      <span
-                        className={`zb-label rounded-full px-2 py-0.5 text-[10px] tracking-[.12em] ${STATE_STYLE[state]}`}
-                      >
-                        {STATE_LABEL[state]}
-                      </span>
+                      <span className={`${BADGE} ${STATE_STYLE[state]}`}>{STATE_LABEL[state]}</span>
+                      {t.submitted_at && t.change_count > 0 && (
+                        <span className={`${BADGE} bg-activebg text-activefg`}>{STR.proposals.tokenSubmitted}</span>
+                      )}
                     </div>
                     <p className="text-xs text-muted">
-                      {STR.proposals.tokenCreated}: {formatTimestampDate(t.created_at)}
-                      {t.expires_at ? ` · ${STR.proposals.tokenExpires}: ${formatTimestampDate(t.expires_at)}` : ''}
-                      {` · ${STR.proposals.tokenProposals}: ${t.proposal_count}`}
+                      {countOf(t.change_count, STR.branch.changeForms)}
+                      {` · ${STR.proposals.tokenCreated}: ${formatTimestampDate(t.created_at)}`}
+                      {` · ${STR.proposals.tokenExpires}: ${formatTimestampDate(t.expires_at)}`}
                     </p>
+                    {t.submitted_at && t.change_count > 0 && (
+                      <p className="text-xs text-activefg">
+                        {STR.proposals.submittedBy}: {t.submitted_by} · {formatTimestampDate(t.submitted_at)}
+                        {t.submit_note ? ` — „${t.submit_note}"` : ''}
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-1.5">
+                    <Link
+                      to={`/settings/proposals/${t.id}`}
+                      className="zb-label inline-flex items-center gap-1.5 rounded-[9px] bg-navy px-2.5 py-1.5 text-[11px] text-onnav hover:bg-navy2"
+                    >
+                      <Eye size={13} aria-hidden="true" />
+                      {STR.proposals.review}
+                    </Link>
                     {state === 'active' && (
                       <Button variant="secondary" size="sm" onClick={() => void copyInvite(t.token)}>
                         <Copy size={13} aria-hidden="true" />

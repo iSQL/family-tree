@@ -57,31 +57,33 @@ CREATE INDEX idx_unions_p2 ON unions(partner2_id);
   },
   {
     version: 3,
-    // Podrška za tokene pozivnica i predloge novih osoba/brakova (Git PR model).
+    // Predlozi rođaka: pozivni link = grana; svaka izmena iz režima predloga je operacija
+    // (proposal_ops) koja se primenjuje nad glavnim stablom tek kad je admin spoji.
     sql: `
 CREATE TABLE proposal_tokens (
-  id           INTEGER PRIMARY KEY,
-  token        TEXT NOT NULL UNIQUE,
-  label        TEXT NOT NULL,
-  created_at   TEXT NOT NULL DEFAULT (datetime('now')),
-  expires_at   TEXT,
-  revoked      INTEGER NOT NULL DEFAULT 0
+  id            INTEGER PRIMARY KEY,
+  token         TEXT NOT NULL UNIQUE,
+  label         TEXT NOT NULL,
+  created_at    TEXT NOT NULL,
+  expires_at    TEXT NOT NULL,
+  revoked       INTEGER NOT NULL DEFAULT 0,
+  next_local_id INTEGER NOT NULL DEFAULT 1,
+  submitted_at  TEXT,
+  submitted_by  TEXT,
+  submit_note   TEXT
 );
-CREATE INDEX idx_proposal_tokens_token ON proposal_tokens(token);
 
-CREATE TABLE proposals (
-  id           INTEGER PRIMARY KEY,
-  token_id     INTEGER REFERENCES proposal_tokens(id) ON DELETE SET NULL,
-  author_name  TEXT NOT NULL,
-  notes        TEXT,
-  status       TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
-  data         TEXT NOT NULL,
-  created_at   TEXT NOT NULL DEFAULT (datetime('now')),
-  reviewed_at  TEXT,
-  review_notes TEXT
+CREATE TABLE proposal_ops (
+  id          INTEGER PRIMARY KEY,
+  token_id    INTEGER NOT NULL REFERENCES proposal_tokens(id) ON DELETE CASCADE,
+  entity      TEXT NOT NULL CHECK (entity IN ('person','union')),
+  entity_id   INTEGER NOT NULL,
+  action      TEXT NOT NULL CHECK (action IN ('create','update','delete')),
+  payload     TEXT NOT NULL,
+  author      TEXT NOT NULL,
+  created_at  TEXT NOT NULL
 );
-CREATE INDEX idx_proposals_status ON proposals(status);
-CREATE INDEX idx_proposals_token ON proposals(token_id);
+CREATE INDEX idx_proposal_ops_token ON proposal_ops(token_id, id);
 `,
   },
 ];

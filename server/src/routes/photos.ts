@@ -1,10 +1,27 @@
-import { Router } from 'express';
+import { Router, type RequestHandler } from 'express';
 import fs from 'node:fs';
 import multer from 'multer';
 import type { DB } from '../db';
 import type { AppConfig } from '../config';
 import { AppError, parseId } from '../middleware/errors';
 import { PHOTO_ID_RE, deletePhoto, photoFilePath, savePhoto } from '../services/photoService';
+
+/** GET /api/photos/:uuid — deli ga i režim predloga (grana vidi i slike koje je sama dodala). */
+export function servePhoto(dataDir: string): RequestHandler {
+  return (req, res) => {
+    const uuid = String(req.params.uuid);
+    if (!PHOTO_ID_RE.test(uuid)) throw new AppError(400, 'validation', 'Neispravan identifikator slike');
+    const size = req.query.size === undefined || req.query.size === 'full' ? 'full' : req.query.size === 'thumb' ? 'thumb' : null;
+    if (size === null) throw new AppError(400, 'validation', "Parametar size mora biti 'full' ili 'thumb'");
+
+    const file = photoFilePath(dataDir, uuid.toLowerCase(), size);
+    if (!fs.existsSync(file)) throw new AppError(404, 'not_found');
+    res.sendFile(file, {
+      cacheControl: false,
+      headers: { 'Cache-Control': 'private, max-age=31536000, immutable' },
+    });
+  };
+}
 
 export function createPhotosRouter(db: DB, cfg: AppConfig): Router {
   const router = Router();
@@ -22,19 +39,7 @@ export function createPhotosRouter(db: DB, cfg: AppConfig): Router {
     res.status(204).end();
   });
 
-  router.get('/photos/:uuid', (req, res) => {
-    const uuid = req.params.uuid;
-    if (!PHOTO_ID_RE.test(uuid)) throw new AppError(400, 'validation', 'Neispravan identifikator slike');
-    const size = req.query.size === undefined || req.query.size === 'full' ? 'full' : req.query.size === 'thumb' ? 'thumb' : null;
-    if (size === null) throw new AppError(400, 'validation', "Parametar size mora biti 'full' ili 'thumb'");
-
-    const file = photoFilePath(cfg.dataDir, uuid.toLowerCase(), size);
-    if (!fs.existsSync(file)) throw new AppError(404, 'not_found');
-    res.sendFile(file, {
-      cacheControl: false,
-      headers: { 'Cache-Control': 'private, max-age=31536000, immutable' },
-    });
-  });
+  router.get('/photos/:uuid', servePhoto(cfg.dataDir));
 
   return router;
 }

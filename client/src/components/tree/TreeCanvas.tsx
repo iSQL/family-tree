@@ -29,17 +29,13 @@ export interface TreeCanvasProps {
   onPersonHide?: (id: number) => void;
   /** Glavna osoba + preci — na njihovim karticama se „−" ne prikazuje. */
   protectedIds?: number[];
-  /** ID-jevi istaknutih čvorova (izbor za kalkulator srodstva, nove osobe u predlogu). */
+  /** ID-jevi istaknutih čvorova (izbor za kalkulator srodstva). */
   selectedIds?: number[];
   /** Broj generacija potomaka od glavne osobe; undefined = neograničeno. Preci su uvek u celosti. */
   progenyDepth?: number;
-  /** URL sličice na kartici — saradnici sa pozivnim linkom je dobijaju preko javne rute. */
-  photoUrl?: (photoId: string) => string;
 }
 
 const EMPTY_IDS: number[] = [];
-
-const DEFAULT_PHOTO_URL = (photoId: string) => `/api/photos/${encodeURIComponent(photoId)}?size=thumb`;
 
 const ESC_MAP: Record<string, string> = {
   '&': '&amp;',
@@ -67,18 +63,13 @@ function placeholderSvg(gender: F3Datum['data']['gender']): string {
 // Kartica je čista funkcija PODATAKA — isticanje izbora (.ft-card-selected) NE ulazi
 // ovde, već ga posebno (de)aktivira efekat ispod prebacivanjem klase u DOM-u. Tako
 // promena izbora nikad ne regeneriše HTML kartica.
-function cardInnerHtml(
-  datum: F3Datum,
-  isMain: boolean,
-  photoUrl: (photoId: string) => string,
-  hideable: boolean,
-): string {
+function cardInnerHtml(datum: F3Datum, isMain: boolean, hideable: boolean): string {
   const p = datum.data;
   const name = esc(`${p.first_name} ${p.last_name}`.trim()) || '?';
   const title = p.title ? ` <span class="ft-card-title">${esc(p.title)}</span>` : '';
   const years = formatLifespan(p.birth_date, p.death_date);
   const img = p.photo_id
-    ? `<img class="ft-card-img" src="${esc(photoUrl(p.photo_id))}" alt="" loading="lazy">`
+    ? `<img class="ft-card-img" src="/api/photos/${encodeURIComponent(p.photo_id)}?size=thumb" alt="" loading="lazy">`
     : placeholderSvg(p.gender);
   const genderClass = p.gender === 'M' ? 'ft-card-m' : p.gender === 'F' ? 'ft-card-f' : 'ft-card-u';
   const flags = isMain ? ' ft-card-main' : '';
@@ -108,7 +99,6 @@ export function TreeCanvas({
   protectedIds = EMPTY_IDS,
   selectedIds = EMPTY_IDS,
   progenyDepth,
-  photoUrl = DEFAULT_PHOTO_URL,
 }: TreeCanvasProps) {
   const contRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<Chart | null>(null);
@@ -124,8 +114,6 @@ export function TreeCanvas({
   contextRef.current = onPersonContextMenu;
   const hideRef = useRef(onPersonHide);
   hideRef.current = onPersonHide;
-  const photoUrlRef = useRef(photoUrl);
-  photoUrlRef.current = photoUrl;
   // Dubina se čita i u create-efektu ([] deps) — drži je u ref-u da izbegne stale closure.
   const progenyDepthRef = useRef(progenyDepth);
   progenyDepthRef.current = progenyDepth;
@@ -159,7 +147,7 @@ export function TreeCanvas({
     const card = chart.setCardHtml();
     card.setCardInnerHtmlCreator((d) => {
       const datum = d.data as unknown as F3Datum & { main?: boolean };
-      return cardInnerHtml(datum, datum.main === true, photoUrlRef.current, hideRef.current !== undefined);
+      return cardInnerHtml(datum, datum.main === true, hideRef.current !== undefined);
     });
     card.setOnCardClick((_e: MouseEvent, d: { data: { id: string } }) => {
       const id = Number(d.data.id);

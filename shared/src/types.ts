@@ -89,6 +89,8 @@ export interface SessionInfo {
   readonly: boolean;
   /** true kad server pušta čitanje bez prijave (PUBLIC_READ) — neprijavljeni gost može da gleda. */
   public_read: boolean;
+  /** Režim predloga (pozivni link) — null kad sesija radi nad glavnim stablom. */
+  branch: BranchSessionInfo | null;
 }
 
 /** Standardno telo greške za sve /api/* rute. */
@@ -123,19 +125,23 @@ export interface GedcomImportResult {
   dry_run: boolean;
 }
 
-export type ProposalStatus = 'pending' | 'approved' | 'rejected';
+// --- Predlozi rođaka: pozivni link = grana izmena koju administrator spaja ---
 
-/** Pozivni link za predloge saradnika (administratorski prikaz). */
+/** Pozivni link (administratorski prikaz). */
 export interface ProposalToken {
   id: number;
   token: string;
   /** Kome je link namenjen (npr. „Rođaci iz Niša"). */
   label: string;
   created_at: string;
-  /** ISO vreme isteka. Rok je obavezan — null postoji samo kod starih zapisa i takav link ne važi. */
-  expires_at: string | null;
+  expires_at: string;
   revoked: boolean;
-  proposal_count: number;
+  /** Broj izmena u grani koje čekaju pregled. */
+  change_count: number;
+  /** Kad je grana poslata na odobrenje (null = nije poslata ili je sve pregledano). */
+  submitted_at: string | null;
+  submitted_by: string | null;
+  submit_note: string | null;
 }
 
 /** Odgovor GET /api/proposals/public/tokens/:token — samo ono što saradnik treba da vidi. */
@@ -144,135 +150,59 @@ export interface PublicTokenInfo {
   expires_at: string;
 }
 
-/**
- * Referenca na osobu unutar predloga: broj = postojeća osoba iz stabla,
- * string = temp_id nove osobe iz istog predloga.
- */
-export type PersonRef = number | string;
-
-export type ParentRole = 'father' | 'mother';
-
-/** Nova osoba iz predloga — ista polja kao Person; roditelj može biti i druga nova osoba. */
-export interface ProposedPerson {
-  temp_id: string;
-  first_name: string;
-  last_name: string;
-  maiden_name: string | null;
-  gender: Gender;
-  title: string | null;
-  birth_date: string | null;
-  death_date: string | null;
-  birth_place: string | null;
-  notes: string | null;
-  father_id: PersonRef | null;
-  mother_id: PersonRef | null;
-}
-
-/** Brak iz predloga — partneri mogu biti postojeće ili nove osobe. */
-export interface ProposedUnion {
-  partner1_id: PersonRef;
-  partner2_id: PersonRef;
-  type: UnionType;
-  start_date: string | null;
-  end_date: string | null;
-  end_reason: UnionEndReason | null;
-  notes: string | null;
-}
-
-/** Nova osoba (parent_id = temp_id) postaje otac/majka POSTOJEĆE osobe — samo na praznom mestu. */
-export interface ProposedParentLink {
-  child_id: number;
-  parent_id: string;
-  role: ParentRole;
-}
-
-/** Kako je postojeća osoba izgledala kad je predlog poslat — otkriva da ID sada pokazuje na nekog drugog. */
-export interface ProposalRefSnapshot {
-  first_name: string;
-  last_name: string;
-  birth_date: string | null;
-}
-
-/** Sadržaj predloga (kolona proposals.data, JSON). */
-export interface ProposalData {
-  persons: ProposedPerson[];
-  unions: ProposedUnion[];
-  parent_links: ProposedParentLink[];
-  /** Ključ = ID postojeće osobe. Popunjava server pri slanju — klijentu se ne veruje. */
-  refs: Record<string, ProposalRefSnapshot>;
-}
-
-export type ProposalIssueCode =
-  | 'duplicate_temp_id'
-  | 'invalid_merge'
-  | 'missing_person'
-  | 'stale_ref'
-  | 'unverified_ref'
-  | 'unknown_ref'
-  | 'self_parent'
-  | 'same_parents'
-  | 'parent_gender'
-  | 'parent_slot_taken'
-  | 'cycle'
-  | 'invalid_union'
-  | 'union_exists'
-  | 'possible_duplicate';
-
-/** Problem u predlogu. Kod 409/422 grešaka stiže i u ApiErrorBody.issues. */
-export interface ProposalIssue {
-  /** error = blokira slanje/spajanje; warning = administrator odlučuje. */
-  severity: 'error' | 'warning';
-  code: ProposalIssueCode;
-  message: string;
-  /** Nova osoba na koju se problem odnosi. */
-  temp_id?: string;
-  /** possible_duplicate: postojeće osobe koje liče na novu. */
-  candidate_ids?: number[];
-}
-
-export interface ProposalCheck {
-  issues: ProposalIssue[];
-  can_approve: boolean;
-}
-
-/** Rešen duplikat: nova osoba iz predloga je zapravo postojeća osoba iz stabla. */
-export interface ProposalMerge {
-  temp_id: string;
-  person_id: number;
-}
-
-/** Odgovor POST /api/proposals/:id/approve. */
-export interface ProposalApproveResult {
-  persons_created: number;
-  persons_merged: number;
-  parent_links_applied: number;
-  unions_created: number;
-  unions_skipped: number;
-}
-
-export interface Proposal {
-  id: number;
-  token_id: number | null;
-  token_label: string | null;
+/** Režim predloga u sesiji: izmene idu u granu linka, a ne u glavno stablo. */
+export interface BranchSessionInfo {
+  token_id: number;
+  label: string;
+  expires_at: string;
+  /** Ime koje je saradnik uneo — vidi se uz njegove izmene. */
   author_name: string;
-  notes: string | null;
-  status: ProposalStatus;
-  data: ProposalData;
-  created_at: string;
-  reviewed_at: string | null;
-  review_notes: string | null;
+  submitted_at: string | null;
 }
 
-export interface ProposalListItem {
-  id: number;
-  token_id: number | null;
-  token_label: string | null;
-  author_name: string;
-  notes: string | null;
-  status: ProposalStatus;
-  created_at: string;
-  reviewed_at: string | null;
-  person_count: number;
-  union_count: number;
+export type BranchEntity = 'person' | 'union';
+export type BranchAction = 'create' | 'update' | 'delete';
+
+/** Jedno polje izmene: vrednost pre izmene, u grani i trenutno u glavnom stablu. */
+export interface BranchFieldChange {
+  field: string;
+  from: unknown;
+  to: unknown;
+  current: unknown;
+  /** Polje je u međuvremenu promenjeno u glavnom stablu (na nešto treće). */
+  conflict: boolean;
+}
+
+/** ok = može da se spoji; conflict = glavno stablo se promenilo pa admin odlučuje; broken = ne može da se primeni. */
+export type BranchChangeStatus = 'ok' | 'conflict' | 'broken';
+
+/** Neto izmena jedne osobe ili braka u grani. */
+export interface BranchChange {
+  /** 'person:12' | 'union:3' — ID-jevi ≥ 1.000.000.000 su osobe/brakovi napravljeni u grani. */
+  key: string;
+  entity: BranchEntity;
+  entity_id: number;
+  action: BranchAction;
+  label: string;
+  fields: BranchFieldChange[];
+  status: BranchChangeStatus;
+  /** Zašto izmena ne može da se primeni ili zašto je konflikt. */
+  problems: string[];
+  /** Npr. mogući duplikat postojeće osobe — ne blokira. */
+  warnings: string[];
+  /** Ključevi izmena koje moraju biti spojene zajedno sa ovom (npr. nova osoba koja je roditelj). */
+  depends_on: string[];
+  authors: string[];
+  updated_at: string;
+}
+
+export interface BranchChangesResponse {
+  changes: BranchChange[];
+  /** Imena osoba na koje upućuju polja (roditelji, partneri) — ključ je ID. */
+  person_labels: Record<string, string>;
+}
+
+export interface BranchMergeResult {
+  merged: number;
 }
 

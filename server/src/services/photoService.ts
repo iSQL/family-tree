@@ -24,15 +24,10 @@ export function deletePhotoFiles(dataDir: string, photoId: string): void {
 }
 
 /**
- * Dekodira (validacija), rotira po EXIF orijentaciji (webp izlaz ne nosi EXIF/GPS),
- * piše {uuid}.webp (1600 inside) + {uuid}.thumb.webp (320x320 cover), briše stare fajlove.
+ * Dekodira (validacija), rotira po EXIF orijentaciji (webp izlaz ne nosi EXIF/GPS) i
+ * piše {uuid}.webp (1600 inside) + {uuid}.thumb.webp (320x320 cover). Vraća uuid.
  */
-export async function savePhoto(db: DB, dataDir: string, personId: number, buffer: Buffer): Promise<string> {
-  const person = db.prepare('SELECT id, photo_id FROM persons WHERE id = ?').get(personId) as
-    | { id: number; photo_id: string | null }
-    | undefined;
-  if (!person) throw new AppError(404, 'not_found');
-
+export async function writePhotoFiles(dataDir: string, buffer: Buffer): Promise<string> {
   let full: Buffer;
   let thumb: Buffer;
   try {
@@ -51,7 +46,17 @@ export async function savePhoto(db: DB, dataDir: string, personId: number, buffe
   const photoId = randomUUID();
   fs.writeFileSync(path.join(dir, `${photoId}.webp`), full);
   fs.writeFileSync(path.join(dir, `${photoId}.thumb.webp`), thumb);
+  return photoId;
+}
 
+/** Nova slika osobe u glavnom stablu — fajlovi prethodne slike se brišu. */
+export async function savePhoto(db: DB, dataDir: string, personId: number, buffer: Buffer): Promise<string> {
+  const person = db.prepare('SELECT id, photo_id FROM persons WHERE id = ?').get(personId) as
+    | { id: number; photo_id: string | null }
+    | undefined;
+  if (!person) throw new AppError(404, 'not_found');
+
+  const photoId = await writePhotoFiles(dataDir, buffer);
   db.prepare("UPDATE persons SET photo_id = ?, updated_at = datetime('now') WHERE id = ?").run(photoId, personId);
   if (person.photo_id) deletePhotoFiles(dataDir, person.photo_id);
 

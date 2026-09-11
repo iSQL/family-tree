@@ -4,6 +4,8 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import { loginSchema } from '@shared/schemas';
 import type { SessionInfo } from '@shared/types';
 import type { AppConfig } from '../config';
+import type { DB } from '../db';
+import { branchSessionInfo } from '../services/branchService';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -14,7 +16,7 @@ function passwordsEqual(supplied: string, expected: string): boolean {
   return timingSafeEqual(a, b);
 }
 
-export function createAuthRouter(cfg: AppConfig): Router {
+export function createAuthRouter(cfg: AppConfig, db: DB): Router {
   const router = Router();
 
   const loginLimiter = rateLimit({
@@ -40,6 +42,8 @@ export function createAuthRouter(cfg: AppConfig): Router {
     req.session.authenticated = true;
     // Read-only samo ako je pogođena ISKLJUČIVO read-only lozinka (puna lozinka uvek daje pun pristup).
     req.session.readonly = !cfg.authDisabled && !fullOk && readonlyOk;
+    // Prijava lozinkom izlazi iz režima predloga.
+    delete req.session.branch;
     await req.session.save();
     res.status(204).end();
   });
@@ -49,12 +53,19 @@ export function createAuthRouter(cfg: AppConfig): Router {
     res.status(204).end();
   });
 
+  router.post('/exit-branch', async (req, res) => {
+    delete req.session.branch;
+    await req.session.save();
+    res.status(204).end();
+  });
+
   router.get('/session', (req, res) => {
     const info: SessionInfo = {
       authenticated: cfg.authDisabled ? true : req.session.authenticated === true,
       auth_mode: cfg.authDisabled ? 'disabled' : 'password',
       readonly: !cfg.authDisabled && req.session.readonly === true,
       public_read: !cfg.authDisabled && cfg.publicRead,
+      branch: branchSessionInfo(db, req.session.branch),
     };
     res.json(info);
   });

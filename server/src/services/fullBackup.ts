@@ -1,11 +1,11 @@
 /**
  * Potpuna rezervna kopija — ZIP koji sadrži CELU bazu (osobe, brakovi, pozivni linkovi i
- * predlozi — svi redovi i sve kolone) i SVE fajlove slika. Za razliku od GEDCOM-a
+ * grane predloga — svi redovi i sve kolone) i SVE fajlove slika. Za razliku od GEDCOM-a
  * (prenosivi standard, bez slika i internih polja), ovo je tačan snimak spreman za vraćanje.
  *
  * Sadržaj ZIP-a:
  *   backup.json   — { format, app_version, schema_version, created_at, persons[], unions[],
- *                     proposal_tokens[], proposals[] }
+ *                     proposal_tokens[], proposal_ops[] }
  *   photos/<ime>  — svi fajlovi iz data/photos (…​.webp i …​.thumb.webp)
  *
  * Samo admin (puna lozinka) sme da pravi i vraća kopiju — vraćanje briše sve postojeće.
@@ -31,10 +31,11 @@ const PERSON_COLS = [
 const UNION_COLS = [
   'id', 'partner1_id', 'partner2_id', 'type', 'start_date', 'end_date', 'end_reason', 'notes',
 ] as const;
-const TOKEN_COLS = ['id', 'token', 'label', 'created_at', 'expires_at', 'revoked'] as const;
-const PROPOSAL_COLS = [
-  'id', 'token_id', 'author_name', 'notes', 'status', 'data', 'created_at', 'reviewed_at', 'review_notes',
+const TOKEN_COLS = [
+  'id', 'token', 'label', 'created_at', 'expires_at', 'revoked', 'next_local_id',
+  'submitted_at', 'submitted_by', 'submit_note',
 ] as const;
+const OP_COLS = ['id', 'token_id', 'entity', 'entity_id', 'action', 'payload', 'author', 'created_at'] as const;
 
 /** Ime fajla u ZIP-u ne sme da izađe iz photos/ (zaštita od path traversal-a). */
 function safePhotoName(name: string): string | null {
@@ -52,7 +53,7 @@ export function buildBackupZip(db: DB, dataDir: string): Uint8Array {
   const persons = db.prepare(`SELECT ${PERSON_COLS.join(', ')} FROM persons ORDER BY id`).all() as Person[];
   const unions = db.prepare(`SELECT ${UNION_COLS.join(', ')} FROM unions ORDER BY id`).all() as Union[];
   const proposalTokens = db.prepare(`SELECT ${TOKEN_COLS.join(', ')} FROM proposal_tokens ORDER BY id`).all();
-  const proposals = db.prepare(`SELECT ${PROPOSAL_COLS.join(', ')} FROM proposals ORDER BY id`).all();
+  const proposalOps = db.prepare(`SELECT ${OP_COLS.join(', ')} FROM proposal_ops ORDER BY id`).all();
 
   const manifest = {
     format: FORMAT,
@@ -62,7 +63,7 @@ export function buildBackupZip(db: DB, dataDir: string): Uint8Array {
     persons,
     unions,
     proposal_tokens: proposalTokens,
-    proposals,
+    proposal_ops: proposalOps,
   };
 
   const files: Record<string, Uint8Array> = {
@@ -116,19 +117,22 @@ const proposalTokenSchema = z.object({
   token: z.string(),
   label: z.string(),
   created_at: z.string(),
-  expires_at: z.string().nullable(),
+  expires_at: z.string(),
   revoked: z.number().int(),
+  next_local_id: z.number().int(),
+  submitted_at: z.string().nullable(),
+  submitted_by: z.string().nullable(),
+  submit_note: z.string().nullable(),
 });
-const proposalSchema = z.object({
+const proposalOpSchema = z.object({
   id: z.number().int(),
-  token_id: z.number().int().nullable(),
-  author_name: z.string(),
-  notes: z.string().nullable(),
-  status: z.enum(['pending', 'approved', 'rejected']),
-  data: z.string(),
+  token_id: z.number().int(),
+  entity: z.enum(['person', 'union']),
+  entity_id: z.number().int(),
+  action: z.enum(['create', 'update', 'delete']),
+  payload: z.string(),
+  author: z.string(),
   created_at: z.string(),
-  reviewed_at: z.string().nullable(),
-  review_notes: z.string().nullable(),
 });
 const manifestSchema = z.object({
   format: z.literal(FORMAT),
@@ -137,7 +141,7 @@ const manifestSchema = z.object({
   unions: z.array(unionSchema),
   // Kopije napravljene pre uvođenja predloga nemaju ova polja.
   proposal_tokens: z.array(proposalTokenSchema).optional(),
-  proposals: z.array(proposalSchema).optional(),
+  proposal_ops: z.array(proposalOpSchema).optional(),
 });
 
 /**
@@ -193,8 +197,8 @@ export function restoreBackupZip(db: DB, dataDir: string, zipBuffer: Buffer): Ba
   const insertToken = db.prepare(
     `INSERT INTO proposal_tokens (${TOKEN_COLS.join(', ')}) VALUES (${TOKEN_COLS.map((c) => `@${c}`).join(', ')})`,
   );
-  const insertProposal = db.prepare(
-    `INSERT INTO proposals (${PROPOSAL_COLS.join(', ')}) VALUES (${PROPOSAL_COLS.map((c) => `@${c}`).join(', ')})`,
+  const insertOp = db.prepare(
+    `INSERT INTO proposal_ops (${OP_COLS.join(', ')}) VALUES (${OP_COLS.map((c) => `@${c}`).join(', ')})`,
   );
 
   const tx = db.transaction(() => {
@@ -207,17 +211,17 @@ export function restoreBackupZip(db: DB, dataDir: string, zipBuffer: Buffer): Ba
     }
     for (const u of manifest.unions) insertUnion.run(u);
 
-    // Starija kopija bez predloga ostavlja postojeće predloge — provera pri odobravanju
-    // ionako otkriva ID-jeve koji sada pokazuju na druge osobe.
-    if (manifest.proposal_tokens !== undefined || manifest.proposals !== undefined) {
-      db.exec('DELETE FROM proposals; DELETE FROM proposal_tokens;');
+    // Starija kopija bez predloga ostavlja postojeće grane — pregled ionako označava
+    // izmene nad osobama koje se u međuvremenu promenile.
+    if (manifest.proposal_tokens !== undefined || manifest.proposal_ops !== undefined) {
+      db.exec('DELETE FROM proposal_ops; DELETE FROM proposal_tokens;');
       const tokenIds = new Set<number>();
       for (const t of manifest.proposal_tokens ?? []) {
         insertToken.run(t);
         tokenIds.add(t.id);
       }
-      for (const p of manifest.proposals ?? []) {
-        insertProposal.run({ ...p, token_id: p.token_id !== null && tokenIds.has(p.token_id) ? p.token_id : null });
+      for (const op of manifest.proposal_ops ?? []) {
+        if (tokenIds.has(op.token_id)) insertOp.run(op);
       }
     }
   });

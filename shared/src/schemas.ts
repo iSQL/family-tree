@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Gender, ParentRole, ProposalStatus, UnionEndReason, UnionType } from './types';
+import type { Gender, UnionEndReason, UnionType } from './types';
 
 /** 'YYYY' | 'YYYY-MM' | 'YYYY-MM-DD' */
 export const partialDateRegex = /^\d{4}(-\d{2}(-\d{2})?)?$/;
@@ -83,16 +83,10 @@ export type UnionInput = z.infer<typeof unionInputSchema>;
 export type UnionPatch = z.infer<typeof unionPatchSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 
-// --- Predlozi saradnika (pozivni link → pregled → spajanje u stablo) ---
+// --- Predlozi rođaka (pozivni link → grana izmena → pregled i spajanje) ---
 
 /** Dozvoljeni rokovi važenja pozivnog linka (u danima) — link bez isteka ne postoji. */
 export const PROPOSAL_TOKEN_DAYS = [7, 30, 90] as const;
-
-/** Gornje granice jednog predloga — javna ruta ne sme da primi proizvoljno velik paket. */
-export const PROPOSAL_LIMITS = { persons: 50, unions: 50, parentLinks: 50 } as const;
-
-export const proposalStatusSchema: z.ZodType<ProposalStatus> = z.enum(['pending', 'approved', 'rejected']);
-export const parentRoleSchema: z.ZodType<ParentRole> = z.enum(['father', 'mother']);
 
 /** POST /api/proposals/manage/tokens */
 export const createProposalTokenSchema = z.object({
@@ -100,67 +94,25 @@ export const createProposalTokenSchema = z.object({
   expires_in_days: z.union([z.literal(7), z.literal(30), z.literal(90)]),
 });
 
-const tempIdSchema = z.string().trim().min(1).max(50);
-/** Broj = postojeća osoba iz stabla; string = temp_id nove osobe iz istog predloga. */
-const personRefSchema = z.union([z.number().int().positive(), tempIdSchema]);
-const optionalPersonRef = z.preprocess(emptyToNull, personRefSchema.nullable());
-
-/** Podaci nove osobe bez roditeljskih veza — forma saradnika i osnova za proposedPersonSchema. */
-export const proposedPersonFieldsSchema = personObject.omit({ father_id: true, mother_id: true });
-
-export const proposedPersonSchema = proposedPersonFieldsSchema.extend({
-  temp_id: tempIdSchema,
-  father_id: optionalPersonRef,
-  mother_id: optionalPersonRef,
-});
-
-export const proposedUnionSchema = unionObject
-  .extend({ partner1_id: personRefSchema, partner2_id: personRefSchema })
-  .refine((u) => u.partner1_id !== u.partner2_id, {
-    message: 'Osoba ne može biti u braku sama sa sobom',
-  });
-
-/** Nova osoba (parent_id = temp_id) postaje otac/majka postojeće osobe. */
-export const proposedParentLinkSchema = z.object({
-  child_id: z.number().int().positive(),
-  parent_id: tempIdSchema,
-  role: parentRoleSchema,
-});
-
-/** POST /api/proposals/public/tokens/:token/submit */
-export const submitProposalSchema = z.object({
+/** POST /api/proposals/public/tokens/:token/enter — ime se beleži uz svaku izmenu u grani. */
+export const enterBranchSchema = z.object({
   author_name: z.string().trim().min(1, 'Unesite vaše ime i prezime').max(100),
-  notes: optionalText(2000),
-  persons: z
-    .array(proposedPersonSchema)
-    .min(1, 'Predlog mora sadržati bar jednu novu osobu')
-    .max(PROPOSAL_LIMITS.persons, `Jedan predlog može imati najviše ${PROPOSAL_LIMITS.persons} osoba`),
-  unions: z.array(proposedUnionSchema).max(PROPOSAL_LIMITS.unions).default([]),
-  parent_links: z.array(proposedParentLinkSchema).max(PROPOSAL_LIMITS.parentLinks).default([]),
 });
 
-/** Autor i poruka — forma za slanje predloga na klijentu. */
-export const proposalAuthorSchema = submitProposalSchema.pick({ author_name: true, notes: true });
-
-/** GET /api/proposals?status= */
-export const proposalListQuerySchema = z.object({ status: proposalStatusSchema.optional() });
-
-/** POST /api/proposals/:id/approve — merges: nove osobe koje su zapravo postojeće (rešen duplikat). */
-export const approveProposalSchema = z.object({
-  merges: z
-    .array(z.object({ temp_id: tempIdSchema, person_id: z.number().int().positive() }))
-    .max(PROPOSAL_LIMITS.persons)
-    .default([]),
+/** POST /api/proposals/branch/submit */
+export const submitBranchSchema = z.object({
+  note: optionalText(2000),
 });
 
-/** POST /api/proposals/:id/reject */
-export const rejectProposalSchema = z.object({
-  review_notes: optionalText(2000),
+/** Izabrane izmene za spajanje ili odbacivanje ('person:12', 'union:3'). */
+export const branchChangeKeysSchema = z.object({
+  keys: z
+    .array(z.string().regex(/^(person|union):\d+$/, 'Neispravan ključ izmene'))
+    .min(1, 'Izaberite bar jednu izmenu')
+    .max(5000),
 });
 
 export type CreateProposalTokenInput = z.infer<typeof createProposalTokenSchema>;
-export type ProposedPersonFields = z.infer<typeof proposedPersonFieldsSchema>;
-export type SubmitProposalInput = z.infer<typeof submitProposalSchema>;
-export type ProposalAuthorInput = z.infer<typeof proposalAuthorSchema>;
-export type ApproveProposalInput = z.infer<typeof approveProposalSchema>;
-export type RejectProposalInput = z.infer<typeof rejectProposalSchema>;
+export type EnterBranchInput = z.infer<typeof enterBranchSchema>;
+export type SubmitBranchInput = z.infer<typeof submitBranchSchema>;
+export type BranchChangeKeysInput = z.infer<typeof branchChangeKeysSchema>;

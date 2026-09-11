@@ -75,30 +75,34 @@ describe('fullBackup — round-trip (servis)', () => {
     expect(fs.existsSync(path.join(photosDir(dataDir), 'stray.webp'))).toBe(false);
   });
 
-  it('čuva pozivne linkove i predloge; starija kopija bez njih ostavlja postojeće', () => {
+  it('čuva pozivne linkove i grane predloga; starija kopija bez njih ostavlja postojeće', () => {
     const db = openDb(':memory:');
     const dataDir = tmpDataDir();
     db.exec(`
-      INSERT INTO proposal_tokens (id, token, label, expires_at) VALUES (1, 'tok', 'Rođaci', '2099-01-01T00:00:00.000Z');
-      INSERT INTO proposals (id, token_id, author_name, status, data) VALUES (1, 1, 'Ana', 'pending', '{"persons":[]}');
+      INSERT INTO proposal_tokens (id, token, label, created_at, expires_at, next_local_id, submitted_by)
+        VALUES (1, 'tok', 'Rođaci', '2026-01-01T00:00:00.000Z', '2099-01-01T00:00:00.000Z', 3, 'Ana');
+      INSERT INTO proposal_ops (id, token_id, entity, entity_id, action, payload, author, created_at)
+        VALUES (1, 1, 'person', 1000000001, 'create', '{"input":{"first_name":"Luka"}}', 'Ana', '2026-01-02T00:00:00.000Z');
     `);
     const zip = buildBackupZip(db, dataDir);
 
-    db.exec('DELETE FROM proposals; DELETE FROM proposal_tokens;');
+    db.exec('DELETE FROM proposal_ops; DELETE FROM proposal_tokens;');
     restoreBackupZip(db, dataDir, Buffer.from(zip));
-    expect(db.prepare('SELECT token, label FROM proposal_tokens').all()).toEqual([{ token: 'tok', label: 'Rođaci' }]);
-    expect(db.prepare('SELECT token_id, author_name, data FROM proposals').all()).toEqual([
-      { token_id: 1, author_name: 'Ana', data: '{"persons":[]}' },
+    expect(db.prepare('SELECT token, next_local_id, submitted_by FROM proposal_tokens').all()).toEqual([
+      { token: 'tok', next_local_id: 3, submitted_by: 'Ana' },
+    ]);
+    expect(db.prepare('SELECT entity_id, author FROM proposal_ops').all()).toEqual([
+      { entity_id: 1000000001, author: 'Ana' },
     ]);
 
-    // Kopija iz vremena pre predloga (bez polja proposal_tokens/proposals).
+    // Kopija iz vremena pre predloga (bez polja proposal_tokens/proposal_ops).
     const entries = unzipSync(zip);
     const manifest = JSON.parse(strFromU8(entries['backup.json']!)) as Record<string, unknown>;
     delete manifest.proposal_tokens;
-    delete manifest.proposals;
+    delete manifest.proposal_ops;
     const oldZip = zipSync({ ...entries, 'backup.json': strToU8(JSON.stringify(manifest)) });
     restoreBackupZip(db, dataDir, Buffer.from(oldZip));
-    expect(db.prepare('SELECT COUNT(*) AS n FROM proposals').get()).toEqual({ n: 1 });
+    expect(db.prepare('SELECT COUNT(*) AS n FROM proposal_ops').get()).toEqual({ n: 1 });
   });
 
   it('odbija ZIP bez backup.json', () => {

@@ -26,7 +26,7 @@ export function AuthGuard({ children }: { children: ReactNode }) {
     );
   }
 
-  if (data.auth_mode === 'disabled' || data.authenticated || data.public_read) {
+  if (data.auth_mode === 'disabled' || data.authenticated || data.public_read || data.branch) {
     return <>{children}</>;
   }
 

@@ -1,22 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { CreateProposalTokenInput, RejectProposalInput, SubmitProposalInput } from '@shared/schemas';
-import type {
-  Proposal,
-  ProposalApproveResult,
-  ProposalListItem,
-  ProposalMerge,
-  ProposalStatus,
-  ProposalToken,
-  PublicTokenInfo,
-  TreeResponse,
-} from '@shared/types';
+import type { CreateProposalTokenInput, EnterBranchInput, SubmitBranchInput } from '@shared/schemas';
+import type { BranchChangesResponse, BranchMergeResult, ProposalToken, PublicTokenInfo } from '@shared/types';
 import { apiFetch } from '../api/client';
-
-export type ProposalFilter = ProposalStatus | 'all';
 
 const PROPOSALS_KEY = ['proposals'] as const;
 
-// --- Administrator (puna lozinka) ---
+/** Sve što zavisi od sadržaja grane — MutationCache (App.tsx) ga osvežava posle svake izmene. */
+export const BRANCH_KEY = ['branch'] as const;
+
+// --- Administrator (pun pristup nad glavnim stablom) ---
 
 export function usePendingProposalCount(enabled: boolean) {
   return useQuery({
@@ -27,26 +19,26 @@ export function usePendingProposalCount(enabled: boolean) {
   });
 }
 
-export function useProposalList(filter: ProposalFilter, enabled: boolean) {
-  return useQuery({
-    queryKey: [...PROPOSALS_KEY, 'list', filter],
-    queryFn: () =>
-      apiFetch<ProposalListItem[]>(filter === 'all' ? '/api/proposals' : `/api/proposals?status=${filter}`),
-    enabled,
-  });
-}
-
-export function useProposal(id: number) {
-  return useQuery({
-    queryKey: [...PROPOSALS_KEY, 'detail', id],
-    queryFn: () => apiFetch<Proposal>(`/api/proposals/${id}`),
-  });
-}
-
 export function useProposalTokens() {
   return useQuery({
     queryKey: [...PROPOSALS_KEY, 'tokens'],
     queryFn: () => apiFetch<ProposalToken[]>('/api/proposals/manage/tokens'),
+  });
+}
+
+export function useProposalToken(id: number, enabled: boolean) {
+  return useQuery({
+    queryKey: [...PROPOSALS_KEY, 'token', id],
+    queryFn: () => apiFetch<ProposalToken>(`/api/proposals/manage/tokens/${id}`),
+    enabled,
+  });
+}
+
+export function useTokenChanges(id: number, enabled: boolean) {
+  return useQuery({
+    queryKey: [...PROPOSALS_KEY, 'changes', id],
+    queryFn: () => apiFetch<BranchChangesResponse>(`/api/proposals/manage/tokens/${id}/changes`),
+    enabled,
   });
 }
 
@@ -65,10 +57,13 @@ export function useProposalAdminMutations() {
     onSuccess: invalidateProposals,
   });
 
-  const approve = useMutation({
-    mutationFn: ({ id, merges }: { id: number; merges: ProposalMerge[] }) =>
-      apiFetch<ProposalApproveResult>(`/api/proposals/${id}/approve`, { method: 'POST', body: { merges } }),
-    // I posle konflikta (409) osveži stablo — provera na klijentu tada vidi isto što i server.
+  const merge = useMutation({
+    mutationFn: ({ tokenId, keys }: { tokenId: number; keys: string[] }) =>
+      apiFetch<BranchMergeResult>(`/api/proposals/manage/tokens/${tokenId}/merge`, {
+        method: 'POST',
+        body: { keys },
+      }),
+    // I posle konflikta (409) osveži — pregled tada prikazuje trenutno stanje.
     onSettled: () =>
       Promise.all([
         invalidateProposals(),
@@ -77,47 +72,74 @@ export function useProposalAdminMutations() {
       ]),
   });
 
-  const reject = useMutation({
-    mutationFn: ({ id, review_notes }: { id: number } & RejectProposalInput) =>
-      apiFetch(`/api/proposals/${id}/reject`, { method: 'POST', body: { review_notes } }),
-    onSuccess: invalidateProposals,
+  const discard = useMutation({
+    mutationFn: ({ tokenId, keys }: { tokenId: number; keys: string[] }) =>
+      apiFetch(`/api/proposals/manage/tokens/${tokenId}/discard`, { method: 'POST', body: { keys } }),
+    onSettled: invalidateProposals,
   });
 
-  return { createToken, revokeToken, approve, reject };
+  return { createToken, revokeToken, merge, discard };
 }
 
-// --- Saradnik sa pozivnim linkom (bez prijave) ---
+// --- Saradnik u režimu predloga ---
+
+export function useBranchChanges(enabled: boolean) {
+  return useQuery({
+    queryKey: [...BRANCH_KEY, 'changes'],
+    queryFn: () => apiFetch<BranchChangesResponse>('/api/proposals/branch/changes'),
+    enabled,
+  });
+}
+
+export function useBranchMutations() {
+  const queryClient = useQueryClient();
+
+  const discard = useMutation({
+    mutationFn: (keys: string[]) => apiFetch('/api/proposals/branch/discard', { method: 'POST', body: { keys } }),
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: BRANCH_KEY }),
+        queryClient.invalidateQueries({ queryKey: ['tree'] }),
+        queryClient.invalidateQueries({ queryKey: ['person'] }),
+      ]),
+  });
+
+  const submit = useMutation({
+    mutationFn: (input: SubmitBranchInput) =>
+      apiFetch('/api/proposals/branch/submit', { method: 'POST', body: input }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['session'] }),
+  });
+
+  // Izlazak menja ceo kontekst podataka (grana → glavno stablo) — keš se prazni.
+  const exit = useMutation({
+    mutationFn: () => apiFetch('/api/auth/exit-branch', { method: 'POST' }),
+    onSuccess: () => queryClient.clear(),
+  });
+
+  return { discard, submit, exit };
+}
+
+// --- Pozivni link (bez prijave) ---
 
 export const publicTokenPath = (token: string) => `/api/proposals/public/tokens/${encodeURIComponent(token)}`;
-
-export const publicPhotoUrl = (token: string, photoId: string) =>
-  `${publicTokenPath(token)}/photos/${encodeURIComponent(photoId)}`;
 
 /** Link koji administrator šalje rođacima. */
 export const inviteUrl = (token: string) => `${window.location.origin}/predlog/${encodeURIComponent(token)}`;
 
 export function usePublicToken(token: string) {
   return useQuery({
-    queryKey: ['public-proposal', token, 'info'],
+    queryKey: ['public-proposal', token],
     queryFn: () => apiFetch<PublicTokenInfo>(publicTokenPath(token)),
     retry: false,
-    staleTime: 5 * 60_000,
   });
 }
 
-export function usePublicTree(token: string, enabled: boolean) {
-  return useQuery({
-    queryKey: ['public-proposal', token, 'tree'],
-    queryFn: () => apiFetch<TreeResponse>(`${publicTokenPath(token)}/tree`),
-    enabled,
-    retry: false,
-    staleTime: 60_000,
-  });
-}
-
-export function useSubmitProposal(token: string) {
+export function useEnterBranch(token: string) {
+  const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: SubmitProposalInput) =>
-      apiFetch<{ id: number }>(`${publicTokenPath(token)}/submit`, { method: 'POST', body: input }),
+    mutationFn: (input: EnterBranchInput) =>
+      apiFetch(`${publicTokenPath(token)}/enter`, { method: 'POST', body: input }),
+    // Ulazak menja ceo kontekst podataka (glavno stablo → grana) — keš se prazni.
+    onSuccess: () => queryClient.clear(),
   });
 }
