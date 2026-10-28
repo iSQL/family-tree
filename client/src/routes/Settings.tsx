@@ -25,6 +25,7 @@ import { useTheme, type Theme } from '../lib/theme';
 import { useKinshipSystem } from '../lib/kinshipSystem';
 import { Button } from '../components/ui/Button';
 import { Card, CardHeader } from '../components/ui/Card';
+import { IncompletePersons } from '../components/person/IncompletePersons';
 import { STR } from '../lib/strings';
 
 const THEME_OPTIONS: { value: Theme; label: string; icon: LucideIcon }[] = [
@@ -284,6 +285,16 @@ export default function SettingsPage() {
             )}
           </div>
         </Card>
+
+        {/* Nepotpuni podaci — spisak za dopunu sa rodbinom */}
+        {tree && !readonly && (
+          <Card>
+            <CardHeader title={STR.incomplete.title} />
+            <div className="p-4">
+              <IncompletePersons tree={tree} />
+            </div>
+          </Card>
+        )}
       </div>
     </div>
   );

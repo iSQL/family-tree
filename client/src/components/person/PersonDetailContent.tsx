@@ -1,8 +1,13 @@
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Crown, Heart, Pencil, Plus, TreeDeciduous, Trash2, UserPlus } from 'lucide-react';
+import { Baby, Crown, Heart, Pencil, Plus, TreeDeciduous, Trash2, UserPlus, Users, type LucideIcon } from 'lucide-react';
 import type { PersonDetail, PersonSlim, UnionWithPartner } from '@shared/types';
-import { useDeletePerson, useDeleteUnion, useUpdatePerson } from '../../hooks/useMutations';
+import {
+  useDeletePerson,
+  useDeleteUnion,
+  useUpdatePerson,
+  type ChangePlan,
+} from '../../hooks/useMutations';
 import { useOnline } from '../../hooks/useOnline';
 import { useReadonly } from '../../hooks/useAccess';
 import { formatLifespan, formatPartialDate } from '../../lib/dates';
@@ -68,6 +73,98 @@ function unionSummary(u: UnionWithPartner): string {
   return parts.join(' · ');
 }
 
+/** Brzi unos srodnika iz detalja (otvara panel u stablu). */
+export type QuickAddHandler = (kind: 'child' | 'spouse' | 'parents' | 'sibling', anchorId: number) => void;
+
+/** Plan koji vraća obrisanu osobu: ista polja, roditelji, veze dece i brakovi (slika se ne vraća). */
+function restorePersonPlan(p: PersonDetail): ChangePlan {
+  return {
+    creates: [
+      {
+        key: 'p',
+        input: {
+          first_name: p.first_name,
+          last_name: p.last_name,
+          maiden_name: p.maiden_name,
+          gender: p.gender,
+          title: p.title,
+          birth_date: p.birth_date,
+          death_date: p.death_date,
+          birth_place: p.birth_place,
+          notes: p.notes,
+          father_id: p.father_id,
+          mother_id: p.mother_id,
+        },
+        familyHead: p.is_family_head,
+      },
+    ],
+    links: p.children.map((c) => ({
+      childId: c.id,
+      ...(c.father_id === p.id ? { father_id: { key: 'p' } } : {}),
+      ...(c.mother_id === p.id ? { mother_id: { key: 'p' } } : {}),
+    })),
+    unions: p.unions
+      .filter((u) => u.partner !== null)
+      .map((u) => ({
+        a: { key: 'p' },
+        b: { id: u.partner!.id },
+        type: u.type,
+        start_date: u.start_date,
+        end_date: u.end_date,
+        end_reason: u.end_reason,
+        notes: u.notes,
+      })),
+  };
+}
+
+function restoreUnionPlan(personId: number, u: UnionWithPartner): ChangePlan | undefined {
+  if (!u.partner) return undefined;
+  return {
+    creates: [],
+    links: [],
+    unions: [
+      {
+        a: { id: personId },
+        b: { id: u.partner.id },
+        type: u.type,
+        start_date: u.start_date,
+        end_date: u.end_date,
+        end_reason: u.end_reason,
+        notes: u.notes,
+      },
+    ],
+  };
+}
+
+function AddTile({
+  icon: Icon,
+  label,
+  onClick,
+  disabled,
+  title,
+}: {
+  icon: LucideIcon;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  title?: string | undefined;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className="flex min-h-[76px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[14px] border border-line bg-cardbg px-1 text-center hover:border-gold disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-line"
+    >
+      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-activebg text-activefg">
+        <Icon size={16} aria-hidden="true" />
+      </span>
+      <span className="text-sm leading-tight font-semibold text-ink">{label}</span>
+    </button>
+  );
+}
+
 export interface PersonDetailContentProps {
   person: PersonDetail;
   /** Klik na čip srodnika (refokus stabla ili navigacija). */
@@ -76,9 +173,17 @@ export interface PersonDetailContentProps {
   onShowInTree?: (id: number) => void;
   /** Posle uspešnog brisanja osobe. */
   onDeleted: () => void;
+  /** Brzi unos srodnika; bez njega pločice „Dodaj" vode na formu (samostalna stranica osobe). */
+  onQuickAdd?: QuickAddHandler | undefined;
 }
 
-export function PersonDetailContent({ person, onPersonClick, onShowInTree, onDeleted }: PersonDetailContentProps) {
+export function PersonDetailContent({
+  person,
+  onPersonClick,
+  onShowInTree,
+  onDeleted,
+  onQuickAdd,
+}: PersonDetailContentProps) {
   const navigate = useNavigate();
   const online = useOnline();
   const readonly = useReadonly();
@@ -93,6 +198,16 @@ export function PersonDetailContent({ person, onPersonClick, onShowInTree, onDel
 
   const years = formatLifespan(person.birth_date, person.death_date);
   const offlineTitle = !online ? STR.common.offlineDisabled : undefined;
+  const hasParent = person.father !== null || person.mother !== null;
+  const missingParent = person.father === null || person.mother === null;
+
+  // Pločice „Dodaj" — brzi unos u stablu, inače klasična forma.
+  const add = (kind: Parameters<QuickAddHandler>[0]) => {
+    if (onQuickAdd) return onQuickAdd(kind, person.id);
+    if (kind === 'spouse') return setAddSpouseOpen(true);
+    const param = kind === 'child' ? 'childOf' : kind === 'parents' ? 'parentOf' : 'siblingOf';
+    navigate(`/person/new?${param}=${person.id}`);
+  };
 
   return (
     <div className="space-y-5">
@@ -118,6 +233,31 @@ export function PersonDetailContent({ person, onPersonClick, onShowInTree, onDel
         </div>
       </div>
 
+      {/* Dodavanje srodnika — krupne pločice na vrhu (Predlog 4) */}
+      {!readonly && (
+        <section aria-label={STR.tree.addToCard}>
+          <h3 className="zb-label mb-1.5 text-[11px] tracking-[.16em] text-faint">{STR.tree.addToCard}</h3>
+          <div className="grid grid-cols-4 gap-2">
+            <AddTile icon={Baby} label={STR.tree.addChildShort} onClick={() => add('child')} disabled={!online} title={offlineTitle} />
+            <AddTile icon={Heart} label={STR.tree.addSpouseShort} onClick={() => add('spouse')} disabled={!online} title={offlineTitle} />
+            <AddTile
+              icon={UserPlus}
+              label={STR.tree.addParentsShort}
+              onClick={() => add('parents')}
+              disabled={!online || !missingParent}
+              title={offlineTitle ?? (!missingParent ? STR.quickAdd.parentsComplete : undefined)}
+            />
+            <AddTile
+              icon={Users}
+              label={STR.tree.addSiblingShort}
+              onClick={() => add('sibling')}
+              disabled={!online || !hasParent}
+              title={offlineTitle ?? (!hasParent ? STR.quickAdd.siblingNoParents : undefined)}
+            />
+          </div>
+        </section>
+      )}
+
       {/* Akcije */}
       <div className="flex flex-wrap gap-2">
         {onShowInTree && (
@@ -132,38 +272,6 @@ export function PersonDetailContent({ person, onPersonClick, onShowInTree, onDel
               <Pencil size={14} aria-hidden="true" />
               {STR.common.edit}
             </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => navigate(`/person/new?childOf=${person.id}`)}
-              disabled={!online}
-              title={offlineTitle}
-            >
-              <UserPlus size={14} aria-hidden="true" />
-              {STR.person.addChild}
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => setAddSpouseOpen(true)}
-              disabled={!online}
-              title={offlineTitle}
-            >
-              <Heart size={14} aria-hidden="true" />
-              {STR.person.addSpouse}
-            </Button>
-            {(person.father === null || person.mother === null) && (
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => navigate(`/person/new?parentOf=${person.id}`)}
-                disabled={!online}
-                title={offlineTitle}
-              >
-                <UserPlus size={14} aria-hidden="true" />
-                {STR.person.addParent}
-              </Button>
-            )}
             <Button
               size="sm"
               variant={person.is_family_head ? 'primary' : 'secondary'}
@@ -228,7 +336,7 @@ export function PersonDetailContent({ person, onPersonClick, onShowInTree, onDel
             !readonly ? (
               <button
                 type="button"
-                onClick={() => setAddSpouseOpen(true)}
+                onClick={() => add('spouse')}
                 disabled={!online}
                 title={offlineTitle}
                 className="flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-muted hover:bg-surface2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
@@ -306,7 +414,7 @@ export function PersonDetailContent({ person, onPersonClick, onShowInTree, onDel
         busy={deletePerson.isPending}
         onClose={() => setConfirmDeleteOpen(false)}
         onConfirm={() =>
-          deletePerson.mutate(person.id, {
+          deletePerson.mutate({ id: person.id, restore: restorePersonPlan(person) }, {
             onSuccess: () => {
               setConfirmDeleteOpen(false);
               onDeleted();
@@ -332,7 +440,10 @@ export function PersonDetailContent({ person, onPersonClick, onShowInTree, onDel
         onClose={() => setDeleteUnionTarget(null)}
         onConfirm={() => {
           if (deleteUnionTarget) {
-            deleteUnion.mutate(deleteUnionTarget.id, { onSuccess: () => setDeleteUnionTarget(null) });
+            deleteUnion.mutate(
+              { id: deleteUnionTarget.id, restore: restoreUnionPlan(person.id, deleteUnionTarget) },
+              { onSuccess: () => setDeleteUnionTarget(null) },
+            );
           }
         }}
       />

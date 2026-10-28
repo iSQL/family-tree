@@ -4,16 +4,30 @@
  * → Chart; setCardHtml() → CardHtml sa setCardInnerHtmlCreator za naše kartice;
  * legacy rels format {father, mother, spouses, children} se interno konvertuje.
  */
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useImperativeHandle, useMemo, useRef, type Ref } from 'react';
 import f3 from 'family-chart';
 import 'family-chart/styles/family-chart.css';
-import type { TreeResponse } from '@shared/types';
+import type { PersonSlim, TreeResponse } from '@shared/types';
+import { missingInfo } from '@shared/quickAdd';
 import { toF3, type F3Datum } from '../../lib/toF3';
 import { formatLifespan } from '../../lib/dates';
 import { STR } from '../../lib/strings';
 
 type Chart = ReturnType<typeof f3.createChart>;
 type F3Data = Parameters<typeof f3.createChart>[1];
+
+/** Vrsta srodnika koja se dodaje preko „+" na kartici. */
+export type CardAddKind = 'parents' | 'child' | 'spouse' | 'sibling';
+
+/** Imperativne operacije nad prikazom (bez re-roota stabla). */
+export interface TreeCanvasHandle {
+  /** Da li je osoba trenutno iscrtana (nije potkresana dubinom ni skrivena). */
+  isShown: (id: number) => boolean;
+  /** Pomeri kameru tako da kartica bude u sredini; false ako osoba nije iscrtana. */
+  centerOn: (id: number) => boolean;
+  /** Centriraj samo ako je kartica van vidljivog dela; false ako osoba nije iscrtana. */
+  ensureVisible: (id: number) => boolean;
+}
 
 export interface TreeCanvasProps {
   tree: TreeResponse;
@@ -33,6 +47,13 @@ export interface TreeCanvasProps {
   selectedIds?: number[];
   /** Broj generacija potomaka od glavne osobe; undefined = neograničeno. Preci su uvek u celosti. */
   progenyDepth?: number;
+  /** Osoba čiji su detalji otvoreni — njena kartica dobija okvir i „+" mesta za dodavanje. */
+  activeId?: number | null;
+  /** Upravo dodate/povezane osobe — kratko istaknute. */
+  highlightIds?: number[];
+  /** Klik na „+" na aktivnoj kartici. Bez handler-a se „+" ne prikazuje (npr. režim pregleda). */
+  onPersonAdd?: (id: number, kind: CardAddKind) => void;
+  controlRef?: Ref<TreeCanvasHandle>;
 }
 
 const EMPTY_IDS: number[] = [];
@@ -63,7 +84,33 @@ function placeholderSvg(gender: F3Datum['data']['gender']): string {
 // Kartica je čista funkcija PODATAKA — isticanje izbora (.ft-card-selected) NE ulazi
 // ovde, već ga posebno (de)aktivira efekat ispod prebacivanjem klase u DOM-u. Tako
 // promena izbora nikad ne regeneriše HTML kartica.
-function cardInnerHtml(datum: F3Datum, isMain: boolean, hideable: boolean): string {
+const ADD_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>`;
+const HEART_ICON = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>`;
+
+/** „+" mesta oko kartice (Predlog 1): roditelji gore (samo ako fali bar jedan), dete dole,
+ *  supružnik desno, brat/sestra levo (samo ako je upisan bar jedan roditelj).
+ *  Vidljiva su samo na aktivnoj kartici (.ft-card-active) — CSS. */
+function addButtonsHtml(person: PersonSlim | undefined): string {
+  if (!person) return '';
+  const btn = (kind: CardAddKind, label: string, inner: string) =>
+    `<button type="button" class="ft-card-add ft-card-add-${kind}" data-add="${kind}" title="${esc(label)}" aria-label="${esc(label)}">${inner}</button>`;
+  const hasParent = person.father_id !== null || person.mother_id !== null;
+  const missingParent = person.father_id === null || person.mother_id === null;
+  return [
+    missingParent ? btn('parents', STR.tree.addParents, `${ADD_ICON}<span>${esc(STR.tree.addParentsShort)}</span>`) : '',
+    btn('child', STR.person.addChild, `${ADD_ICON}<span>${esc(STR.tree.addChildShort)}</span>`),
+    btn('spouse', STR.person.addSpouse, HEART_ICON),
+    hasParent ? btn('sibling', STR.tree.addSibling, ADD_ICON) : '',
+  ].join('');
+}
+
+function cardInnerHtml(
+  datum: F3Datum,
+  isMain: boolean,
+  hideable: boolean,
+  person: PersonSlim | undefined,
+  addable: boolean,
+): string {
   const p = datum.data;
   const name = esc(`${p.first_name} ${p.last_name}`.trim()) || '?';
   const title = p.title ? ` <span class="ft-card-title">${esc(p.title)}</span>` : '';
@@ -79,13 +126,23 @@ function cardInnerHtml(datum: F3Datum, isMain: boolean, hideable: boolean): stri
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg>
   </button>`
     : '';
+  // Tačka u uglu = nedostaje pol ili datum rođenja (spisak za dopunu je u Podešavanjima).
+  const missing = missingInfo(p);
+  const dot =
+    missing.length > 0
+      ? `<span class="ft-card-dot" title="${esc(
+          `${STR.incomplete.missing} ${missing.map((m) => (m === 'gender' ? STR.incomplete.gender : STR.incomplete.birth)).join(', ')}`,
+        )}"></span>`
+      : '';
   return `<div class="ft-card ${genderClass}${flags}" data-person-id="${esc(datum.id)}">
     ${img}
     <div class="ft-card-text">
       <div class="ft-card-name">${name}${title}</div>
       ${years ? `<div class="ft-card-years">${years}</div>` : ''}
     </div>
+    ${dot}
     ${hideBtn}
+    ${addable ? addButtonsHtml(person) : ''}
   </div>`;
 }
 
@@ -99,6 +156,10 @@ export function TreeCanvas({
   protectedIds = EMPTY_IDS,
   selectedIds = EMPTY_IDS,
   progenyDepth,
+  activeId = null,
+  highlightIds = EMPTY_IDS,
+  onPersonAdd,
+  controlRef,
 }: TreeCanvasProps) {
   const contRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<Chart | null>(null);
@@ -114,6 +175,11 @@ export function TreeCanvas({
   contextRef.current = onPersonContextMenu;
   const hideRef = useRef(onPersonHide);
   hideRef.current = onPersonHide;
+  const addRef = useRef(onPersonAdd);
+  addRef.current = onPersonAdd;
+  // Osobe po id-u — kartice čitaju roditeljske slotove (f3 interno menja oblik rels).
+  const personsRef = useRef(new Map<number, PersonSlim>());
+  personsRef.current = useMemo(() => new Map(tree.persons.map((p) => [p.id, p])), [tree.persons]);
   // Dubina se čita i u create-efektu ([] deps) — drži je u ref-u da izbegne stale closure.
   const progenyDepthRef = useRef(progenyDepth);
   progenyDepthRef.current = progenyDepth;
@@ -147,7 +213,13 @@ export function TreeCanvas({
     const card = chart.setCardHtml();
     card.setCardInnerHtmlCreator((d) => {
       const datum = d.data as unknown as F3Datum & { main?: boolean };
-      return cardInnerHtml(datum, datum.main === true, hideRef.current !== undefined);
+      return cardInnerHtml(
+        datum,
+        datum.main === true,
+        hideRef.current !== undefined,
+        personsRef.current.get(Number(datum.id)),
+        addRef.current !== undefined,
+      );
     });
     card.setOnCardClick((_e: MouseEvent, d: { data: { id: string } }) => {
       const id = Number(d.data.id);
@@ -168,6 +240,7 @@ export function TreeCanvas({
     // Dupli klik = re-root. family-chart nema dblclick API i zaustavlja propagaciju
     // u bubble fazi, pa slušamo u CAPTURE fazi na stabilnom kontejneru.
     const onDblClick = (e: MouseEvent) => {
+      if ((e.target as HTMLElement | null)?.closest('.ft-card-add, .ft-card-hide')) return;
       const id = personIdAt(e.target);
       if (id !== null) activateRef.current?.(id);
     };
@@ -224,6 +297,17 @@ export function TreeCanvas({
         swallowClick = false;
         const id = personIdAt(hideBtn);
         if (id !== null) hideRef.current?.(id);
+        return;
+      }
+      // Klik na „+" — dodaj srodnika, ne otvaraj detalje.
+      const addBtn = (e.target as HTMLElement | null)?.closest<HTMLElement>('.ft-card-add');
+      if (addBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        swallowClick = false;
+        const id = personIdAt(addBtn);
+        const kind = addBtn.dataset.add as CardAddKind | undefined;
+        if (id !== null && kind) addRef.current?.(id, kind);
         return;
       }
       if (!swallowClick) return;
@@ -326,6 +410,66 @@ export function TreeCanvas({
       el.classList.toggle('ft-card-no-hide', prot.has(el.dataset.personId ?? ''));
     });
   }, [protectedIds, f3Data, progenyDepth, focusId]);
+
+  // Aktivna kartica (otvoreni detalji) — okvir i „+" mesta; isto prebacivanjem klase.
+  useEffect(() => {
+    const cont = contRef.current;
+    if (!cont) return;
+    const active = activeId === null ? '' : String(activeId);
+    cont.querySelectorAll<HTMLElement>('.ft-card').forEach((el) => {
+      el.classList.toggle('ft-card-active', active !== '' && el.dataset.personId === active);
+    });
+  }, [activeId, f3Data, progenyDepth, focusId]);
+
+  // Upravo dodate osobe — zlatni oreol i oznaka „NOVO" dok ih roditelj ne skloni.
+  useEffect(() => {
+    const cont = contRef.current;
+    if (!cont) return;
+    const hl = new Set(highlightIds.map(String));
+    cont.querySelectorAll<HTMLElement>('.ft-card').forEach((el) => {
+      el.classList.toggle('ft-card-new', hl.has(el.dataset.personId ?? ''));
+    });
+  }, [highlightIds, f3Data, progenyDepth, focusId]);
+
+  useImperativeHandle(controlRef, () => {
+    const centerOn = (id: number): boolean => {
+      const chart = chartRef.current;
+      const datum = chart?.store.getTreeDatum(String(id));
+      if (!chart || !datum) return false;
+      const svg = chart.svg;
+      const k = f3.handlers.getCurrentZoom(svg).k;
+      // f3 cardToMiddle ne skalira y sa zumom — predaj y već pomnožen sa k.
+      f3.handlers.cardToMiddle({
+        datum: { ...datum, y: datum.y * k },
+        svg,
+        svg_dim: svg.getBoundingClientRect(),
+        scale: k,
+        transition_time: 600,
+      });
+      return true;
+    };
+    return {
+      isShown: (id) => Boolean(chartRef.current?.store.getTreeDatum(String(id))),
+      centerOn,
+      ensureVisible: (id) => {
+        if (!chartRef.current?.store.getTreeDatum(String(id))) return false;
+        const cont = contRef.current;
+        const el = cont?.querySelector<HTMLElement>(`.ft-card[data-person-id="${id}"]`);
+        if (cont && el) {
+          const c = cont.getBoundingClientRect();
+          const r = el.getBoundingClientRect();
+          const margin = 24;
+          const inside =
+            r.left >= c.left + margin &&
+            r.right <= c.right - margin &&
+            r.top >= c.top + margin &&
+            r.bottom <= c.bottom - margin;
+          if (inside) return true;
+        }
+        return centerOn(id);
+      },
+    };
+  }, []);
 
   return <div ref={contRef} className="f3 ft-tree" data-testid="tree-canvas" />;
 }
