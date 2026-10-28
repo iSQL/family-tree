@@ -1,6 +1,6 @@
 import { X } from 'lucide-react';
 import { usePerson } from '../../hooks/usePerson';
-import { PersonDetailContent } from './PersonDetailContent';
+import { PersonDetailContent, type QuickAddHandler } from './PersonDetailContent';
 import { FullScreenSpinner } from '../ui/Spinner';
 import { STR } from '../../lib/strings';
 
@@ -11,10 +11,12 @@ export interface PersonDrawerProps {
   onFocusPerson: (id: number) => void;
   /** „Prikaži stablo odavde" — re-root na trenutno otvorenu osobu. */
   onShowInTree: (id: number) => void;
+  /** Brzi unos srodnika (pločice „Dodaj"); bez njega pločice vode na formu. */
+  onQuickAdd?: QuickAddHandler | undefined;
 }
 
 /** Desni drawer (≥768px) sa punim detaljima osobe. */
-export function PersonDrawer({ personId, onClose, onFocusPerson, onShowInTree }: PersonDrawerProps) {
+export function PersonDrawer({ personId, onClose, onFocusPerson, onShowInTree, onQuickAdd }: PersonDrawerProps) {
   const { data: person, isPending, isError } = usePerson(personId);
 
   return (
@@ -42,6 +44,7 @@ export function PersonDrawer({ personId, onClose, onFocusPerson, onShowInTree }:
             person={person}
             onPersonClick={onFocusPerson}
             onShowInTree={onShowInTree}
+            onQuickAdd={onQuickAdd}
             onDeleted={onClose}
           />
         )}

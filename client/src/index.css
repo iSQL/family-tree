@@ -304,3 +304,132 @@
 .ft-card-no-hide .ft-card-hide {
   display: none;
 }
+
+/* Aktivna kartica (otvoreni detalji / brzi unos) — tanak tamnoplavi okvir;
+   glavna osoba zadržava zlatni. */
+.ft-card-active:not(.ft-card-main):not(.ft-card-selected) {
+  outline: 2px solid var(--zb-navy-line);
+  outline-offset: 2px;
+}
+
+/* „+" mesta oko aktivne kartice (Predlog 1) — vidljiva samo na .ft-card-active */
+.ft-card-add {
+  position: absolute;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 10px 0 8px;
+  border-radius: 9999px;
+  border: 1.5px dashed var(--zb-goldline);
+  background: var(--zb-surface);
+  color: var(--zb-activefg);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgb(20 30 50 / 0.14);
+  z-index: 2;
+}
+
+.ft-card-add:hover,
+.ft-card-add:focus-visible {
+  border-style: solid;
+  background: var(--zb-activebg);
+  outline: none;
+}
+
+.ft-card-active .ft-card-add {
+  display: inline-flex;
+  animation: ft-add-in 0.18s ease-out;
+}
+
+.ft-card-add-parents {
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.ft-card-add-child {
+  bottom: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.ft-card-add-spouse,
+.ft-card-add-sibling {
+  top: 50%;
+  width: 28px;
+  padding: 0;
+  transform: translateY(-50%);
+}
+
+.ft-card-add-spouse {
+  right: -36px;
+}
+
+.ft-card-add-sibling {
+  left: -36px;
+}
+
+@keyframes ft-add-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Nedostaje pol ili datum rođenja — tačka u donjem desnom uglu */
+.ft-card-dot {
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: var(--zb-goldline);
+  opacity: 0.85;
+}
+
+/* Upravo dodata osoba (Predlog 3) — zlatni oreol i „NOVO" */
+.ft-card-new {
+  box-shadow:
+    0 0 0 6px rgb(194 155 71 / 0.35),
+    0 2px 6px rgb(20 30 50 / 0.14);
+  animation: ft-new-pulse 1.2s ease-out 2;
+}
+
+.ft-card-new::after {
+  content: 'NOVO';
+  position: absolute;
+  top: -10px;
+  right: 18px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: #e4c378;
+  color: #1d3557;
+  font-family: 'Marcellus SC', serif;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+
+@keyframes ft-new-pulse {
+  0% {
+    box-shadow:
+      0 0 0 0 rgb(194 155 71 / 0.6),
+      0 2px 6px rgb(20 30 50 / 0.14);
+  }
+  100% {
+    box-shadow:
+      0 0 0 6px rgb(194 155 71 / 0.35),
+      0 2px 6px rgb(20 30 50 / 0.14);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ft-card-new,
+  .ft-card-active .ft-card-add {
+    animation: none;
+  }
+}

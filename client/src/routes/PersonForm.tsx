@@ -39,14 +39,24 @@ function firstPartnerOf(tree: TreeResponse, personId: number): PersonSlim | null
   return null;
 }
 
-/** Prefill za novu osobu na osnovu ?childOf / ?spouseOf / ?parentOf. */
+/** Prefill za novu osobu na osnovu ?childOf / ?spouseOf / ?parentOf / ?siblingOf. */
 function buildNewDefaults(
   tree: TreeResponse,
   childOf: number | null,
   spouseOf: number | null,
   parentOf: number | null,
+  siblingOf: number | null,
 ): Partial<PersonFormValues> {
   const defaults: Partial<PersonFormValues> = {};
+
+  if (siblingOf !== null) {
+    const sibling = tree.persons.find((p) => p.id === siblingOf);
+    if (sibling) {
+      defaults.father_id = sibling.father_id;
+      defaults.mother_id = sibling.mother_id;
+      defaults.last_name = sibling.last_name;
+    }
+  }
 
   if (childOf !== null) {
     const parent = tree.persons.find((p) => p.id === childOf);
@@ -85,12 +95,17 @@ function newPersonTitle(
   childOf: number | null,
   spouseOf: number | null,
   parentOf: number | null,
+  siblingOf: number | null,
 ): string {
   const named = (id: number): string | null => {
     const p = tree.persons.find((x) => x.id === id);
     return p ? `${p.first_name} ${p.last_name}`.trim() : null;
   };
 
+  if (siblingOf !== null) {
+    const name = named(siblingOf);
+    if (name) return `${STR.tree.addSibling}: ${name}`;
+  }
   if (childOf !== null) {
     const name = named(childOf);
     if (name) return `${STR.person.newChildOf} ${name}`;
@@ -131,6 +146,9 @@ export default function PersonFormPage() {
   const childOf = parseIdParam(searchParams.get('childOf'));
   const spouseOf = parseIdParam(searchParams.get('spouseOf'));
   const parentOf = parseIdParam(searchParams.get('parentOf'));
+  const siblingOf = parseIdParam(searchParams.get('siblingOf'));
+  // Posle unosa stablo ostaje na osobi od koje se krenulo (ne skače na novu).
+  const anchorId = childOf ?? spouseOf ?? parentOf ?? siblingOf;
 
   const navigate = useNavigate();
   const readonly = useReadonly();
@@ -171,7 +189,7 @@ export default function PersonFormPage() {
             await updatePerson.mutateAsync({ id: parentOf, patch });
           }
         } finally {
-          navigate(`/?focus=${created.id}`);
+          navigate(`/?focus=${anchorId ?? created.id}`);
         }
       },
     });
@@ -196,7 +214,7 @@ export default function PersonFormPage() {
   }
 
   const defaults: Partial<PersonFormValues> =
-    isEdit && editing ? detailToFormValues(editing) : buildNewDefaults(tree, childOf, spouseOf, parentOf);
+    isEdit && editing ? detailToFormValues(editing) : buildNewDefaults(tree, childOf, spouseOf, parentOf, siblingOf);
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -207,7 +225,7 @@ export default function PersonFormPage() {
             {STR.common.back}
           </Button>
           <h1 className="font-display text-xl font-normal text-heading">
-            {isEdit ? STR.person.editTitle : newPersonTitle(tree, childOf, spouseOf, parentOf)}
+            {isEdit ? STR.person.editTitle : newPersonTitle(tree, childOf, spouseOf, parentOf, siblingOf)}
           </h1>
         </div>
         <Card className="p-4 sm:p-6">

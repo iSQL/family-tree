@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { usePerson } from '../../hooks/usePerson';
-import { PersonDetailContent } from './PersonDetailContent';
+import { PersonDetailContent, type QuickAddHandler } from './PersonDetailContent';
 import { FullScreenSpinner } from '../ui/Spinner';
 import { STR } from '../../lib/strings';
 
@@ -13,6 +13,8 @@ export interface PersonSheetProps {
   onFocusPerson: (id: number) => void;
   /** „Prikaži stablo odavde" — re-root na trenutno otvorenu osobu. */
   onShowInTree: (id: number) => void;
+  /** Brzi unos srodnika (pločice „Dodaj"); bez njega pločice vode na formu. */
+  onQuickAdd?: QuickAddHandler | undefined;
 }
 
 /** Zatvori ako je povučeno niže od ovoga, ili na brz pokret naniže. */
@@ -20,7 +22,7 @@ const DISMISS_PX = 120;
 const FLICK_VELOCITY = 0.6; // px/ms
 
 /** Mobilni bottom sheet (<768px) sa punim detaljima osobe — klizi odozdo, povlačenjem se zatvara. */
-export function PersonSheet({ personId, onClose, onFocusPerson, onShowInTree }: PersonSheetProps) {
+export function PersonSheet({ personId, onClose, onFocusPerson, onShowInTree, onQuickAdd }: PersonSheetProps) {
   const { data: person, isPending, isError } = usePerson(personId);
   const [dragY, setDragY] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -106,6 +108,7 @@ export function PersonSheet({ personId, onClose, onFocusPerson, onShowInTree }: 
               person={person}
               onPersonClick={onFocusPerson}
               onShowInTree={onShowInTree}
+              onQuickAdd={onQuickAdd}
               onDeleted={onClose}
             />
           )}

@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import type { PersonSlim } from '@shared/types';
 import { foldForSearch, personMatchesQuery } from '@shared/search';
@@ -23,10 +23,15 @@ function rankResults(persons: PersonSlim[], query: string): PersonSlim[] {
   return [...starts, ...rest].slice(0, MAX_RESULTS);
 }
 
-/** Klijentska pretraga nad kešom stabla; izbor centrira osobu (?focus=). */
+/**
+ * Klijentska pretraga nad kešom stabla. Na otvorenom stablu izbor „skače" na osobu
+ * (?find=) — centrira je bez promene glavne osobe ako je već iscrtana; inače je
+ * postavlja za fokus (?focus=). Ctrl+K (⌘K) fokusira polje.
+ */
 export function SearchBar() {
   const { data: tree } = useTree();
   const navigate = useNavigate();
+  const location = useLocation();
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -37,11 +42,31 @@ export function SearchBar() {
     return rankResults(tree.persons, query);
   }, [tree, query]);
 
+  // Ctrl+K / ⌘K — fokusiraj vidljivo polje (ljuska ima posebno polje za telefon i desktop).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'k') return;
+      const input = inputRef.current;
+      if (!input || input.offsetParent === null) return;
+      e.preventDefault();
+      input.focus();
+      input.select();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   const select = (id: number) => {
     setQuery('');
     setOpen(false);
     inputRef.current?.blur();
-    navigate(`/?focus=${id}`);
+    const params = new URLSearchParams(location.search);
+    if (location.pathname === '/' && params.has('focus')) {
+      params.set('find', String(id));
+      navigate(`/?${params.toString()}`);
+    } else {
+      navigate(`/?focus=${id}`);
+    }
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -78,6 +103,8 @@ export function SearchBar() {
         aria-expanded={open && results.length > 0}
         aria-label={STR.search.placeholder}
         placeholder={STR.search.placeholder}
+        aria-keyshortcuts="Control+K"
+        title={STR.search.shortcutHint}
         value={query}
         onChange={(e) => {
           setQuery(e.target.value);

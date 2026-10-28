@@ -5,7 +5,7 @@
  * okvir ekrana; zatvara se na klik van menija, Escape ili izbor akcije.
  */
 import { useLayoutEffect, useEffect, useRef, useState } from 'react';
-import { EyeOff, Heart, Pencil, UserPlus, Baby, TreeDeciduous } from 'lucide-react';
+import { EyeOff, Heart, Pencil, UserPlus, Baby, TreeDeciduous, Users } from 'lucide-react';
 import type { PersonSlim } from '@shared/types';
 import { STR } from '../../lib/strings';
 
@@ -22,6 +22,7 @@ export interface TreeContextMenuProps {
   onAddChild: (id: number) => void;
   onAddSpouse: (id: number) => void;
   onAddParent: (id: number) => void;
+  onAddSibling: (id: number) => void;
   onHide: (id: number) => void;
   onShowFromHere: (id: number) => void;
 }
@@ -42,6 +43,7 @@ export function TreeContextMenu({
   onAddChild,
   onAddSpouse,
   onAddParent,
+  onAddSibling,
   onHide,
   onShowFromHere,
 }: TreeContextMenuProps) {
@@ -102,17 +104,25 @@ export function TreeContextMenu({
           <button type="button" role="menuitem" className={ITEM_CLASS} onClick={run(onAddChild)}>
             <Baby size={16} className="shrink-0 text-muted" aria-hidden="true" />
             {STR.person.addChild}
-            <kbd className={KBD_CLASS}>z</kbd>
+            <kbd className={KBD_CLASS}>d</kbd>
           </button>
           <button type="button" role="menuitem" className={ITEM_CLASS} onClick={run(onAddSpouse)}>
             <Heart size={16} className="shrink-0 text-muted" aria-hidden="true" />
             {STR.person.addSpouse}
-            <kbd className={KBD_CLASS}>x</kbd>
+            <kbd className={KBD_CLASS}>s</kbd>
           </button>
           {(person.father_id === null || person.mother_id === null) && (
             <button type="button" role="menuitem" className={ITEM_CLASS} onClick={run(onAddParent)}>
               <UserPlus size={16} className="shrink-0 text-muted" aria-hidden="true" />
-              {STR.person.addParent}
+              {STR.tree.addParents}
+              <kbd className={KBD_CLASS}>r</kbd>
+            </button>
+          )}
+          {(person.father_id !== null || person.mother_id !== null) && (
+            <button type="button" role="menuitem" className={ITEM_CLASS} onClick={run(onAddSibling)}>
+              <Users size={16} className="shrink-0 text-muted" aria-hidden="true" />
+              {STR.tree.addSibling}
+              <kbd className={KBD_CLASS}>b</kbd>
             </button>
           )}
           <div className="mx-1.5 my-1 h-px bg-line" aria-hidden="true" />
@@ -142,6 +152,7 @@ export function TreeContextMenu({
           <button type="button" role="menuitem" className={ITEM_CLASS} onClick={run(onEdit)}>
             <Pencil size={16} className="shrink-0 text-muted" aria-hidden="true" />
             {STR.tree.editPerson}
+            <kbd className={KBD_CLASS}>e</kbd>
           </button>
         </>
       )}
